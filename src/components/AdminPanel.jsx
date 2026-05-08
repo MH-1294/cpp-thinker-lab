@@ -36,6 +36,8 @@ export default function AdminPanel({ onPreview }) {
   const [isProbSaved, setIsProbSaved] = useState(false);
   const [probLoading, setProbLoading] = useState(false);
   const [seedMessage, setSeedMessage] = useState('');
+  const [bulkProbJSON, setBulkProbJSON] = useState('');
+  const [bulkProbMessage, setBulkProbMessage] = useState('');
 
   // --- COURSE STATE ---
   const [lessonIdToEdit, setLessonIdToEdit] = useState(null);
@@ -181,6 +183,34 @@ export default function AdminPanel({ onPreview }) {
     await fetchFirestoreProblems();
     setSeedMessage(`Seeded ${staticProblems.length} problems!`);
     setTimeout(() => setSeedMessage(''), 4000);
+  };
+
+  const handleBulkProbImport = async () => {
+    if (!bulkProbJSON.trim()) return;
+    try {
+      const parsed = JSON.parse(bulkProbJSON);
+      if (!Array.isArray(parsed)) throw new Error('JSON must be an array [ ... ]');
+      if (!db) throw new Error('Firebase not connected.');
+      for (const p of parsed) {
+        await addDoc(collection(db, 'problems'), {
+          title: p.title || 'Untitled Problem',
+          source: p.source || 'AI Generated',
+          description: p.description || '',
+          input: p.input || '',
+          output: p.output || '',
+          sampleInput: p.sampleInput || '',
+          sampleOutput: p.sampleOutput || '',
+          isVisible: true,
+          createdAt: Date.now()
+        });
+      }
+      await fetchFirestoreProblems();
+      setBulkProbJSON('');
+      setBulkProbMessage(`✓ Imported ${parsed.length} problems successfully!`);
+    } catch (e) {
+      setBulkProbMessage(`Error: ${e.message}`);
+    }
+    setTimeout(() => setBulkProbMessage(''), 4000);
   };
 
   const copyProbPrompt = () => {
@@ -400,8 +430,17 @@ export default function AdminPanel({ onPreview }) {
               </div>
               <div style={{ padding: '1rem', background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)', borderRadius: '10px' }}>
                 <h4 style={{ color: '#38bdf8', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Bot size={18} /> AI Prompt</h4>
-                <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '1rem' }}>Copy a prompt for ChatGPT to generate new problems for you.</p>
-                <button onClick={copyProbPrompt} className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><Copy size={14} /> Copy AI Prompt</button>
+                <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '0.75rem' }}>1. Copy this prompt → paste into ChatGPT → copy the JSON result → paste below.</p>
+                <button onClick={copyProbPrompt} className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}><Copy size={14} /> Copy AI Prompt</button>
+                <textarea
+                  value={bulkProbJSON}
+                  onChange={(e) => setBulkProbJSON(e.target.value)}
+                  placeholder='Paste the JSON array from ChatGPT here... [ { "title": "...", "description": "..." } ]'
+                  rows="5"
+                  style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.4)', color: '#10b981', fontFamily: 'monospace', fontSize: '0.8rem', border: '1px solid rgba(56,189,248,0.3)', borderRadius: '6px', resize: 'vertical' }}
+                />
+                {bulkProbMessage && <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: bulkProbMessage.includes('Error') ? '#f87171' : '#34d399' }}>{bulkProbMessage}</div>}
+                <button onClick={handleBulkProbImport} className="btn" style={{ width: '100%', marginTop: '0.5rem', background: '#38bdf8', color: '#0f172a', fontWeight: 'bold' }}>Import to Database</button>
               </div>
             </div>
           </div>
