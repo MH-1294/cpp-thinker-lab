@@ -237,12 +237,21 @@ export default function Legal({ defaultTab = 'copyright' }) {
               flexWrap: 'wrap',
             }}>
               <div style={{
-                width: '56px', height: '56px', borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--secondary-color), var(--primary-color))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.5rem', flexShrink: 0,
+                width: '64px', height: '64px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, var(--secondary-color), var(--accent-color))',
+                padding: '2px',
+                flexShrink: 0,
               }}>
-                👨‍💻
+                <img
+                  src="https://mh-1294.github.io/abid/assets/img/mehedi_pic.jpg"
+                  alt="Mehedi Hasan Abid"
+                  style={{
+                    width: '100%', height: '100%',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
               </div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#e2e8f0' }}>Mehedi Hasan Abid</div>
