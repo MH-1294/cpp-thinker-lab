@@ -101,6 +101,11 @@ function App() {
     user:      useRef(null),
   };
 
+  // Scroll to top whenever the view changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentView]);
+
   useEffect(() => {
     if (!auth) {
       // Fallback check for mock login
@@ -226,7 +231,7 @@ function App() {
       <div className={`mobile-nav-overlay ${mobileNavOpen ? 'open' : ''}`} onClick={() => setMobileNavOpen(false)} />
 
       {/* Mobile drawer */}
-      <div className={`mobile-nav-drawer ${mobileNavOpen ? 'open' : ''}`}>
+      <div id="mobile-nav-drawer" className={`mobile-nav-drawer ${mobileNavOpen ? 'open' : ''}`} role="dialog" aria-label="Navigation menu" aria-modal="true">
         <div className="mobile-nav-section">Learn</div>
         <button onClick={() => { setCurrentView('guide'); setMobileNavOpen(false); }}>📖 Guide (Start Here)</button>
         <button onClick={() => { setCurrentView('course'); setMobileNavOpen(false); }} style={{ color: '#fbbf24' }}>★ Premium Course</button>
@@ -260,6 +265,10 @@ function App() {
         {!isAuthenticated && (
           <button onClick={() => { setCurrentView('login'); setMobileNavOpen(false); }} style={{ color: 'var(--accent-color)', marginTop: '1rem' }}>Sign In →</button>
         )}
+
+        <div className="mobile-nav-section">Legal</div>
+        <button onClick={() => { setCurrentView('legal-privacy'); setMobileNavOpen(false); }}>🔒 Privacy Policy</button>
+        <button onClick={() => { setCurrentView('legal-credits'); setMobileNavOpen(false); }}>🙏 Credits</button>
       </div>
 
       <nav className="nav-bar" aria-label="Main navigation">

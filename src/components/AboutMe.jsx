@@ -75,9 +75,15 @@ export default function AboutMe() {
           <p style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>
             Building and maintaining these educational resources takes countless hours. If you find this platform helpful, consider buying me a coffee!
           </p>
-          <button className="btn" style={{ background: '#fbbf24', color: '#0f172a', fontWeight: 'bold' }}>
+          <a
+            href="https://www.buymeacoffee.com/mehediabid"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn"
+            style={{ background: '#fbbf24', color: '#0f172a', fontWeight: 'bold', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
             ☕ Buy me a Coffee
-          </button>
+          </a>
         </div>
       </div>
     </div>
