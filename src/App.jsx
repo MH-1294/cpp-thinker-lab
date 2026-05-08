@@ -21,6 +21,7 @@ import Course from './components/Course'
 import Profile from './components/Profile'
 import FAQ from './components/FAQ'
 import Tutoring from './components/Tutoring'
+import Legal from './components/Legal'
 
 // ─── Accessible Dropdown Component ────────────────────────────────────────────
 function NavDropdown({ id, label, isActive, align = 'center', openDropdown, setOpenDropdown, dropdownRef, children }) {
@@ -210,6 +211,9 @@ function App() {
       case 'tutoring': return <Tutoring isAuthenticated={isAuthenticated} userName={userName} />;
       case 'profile': return <Profile onUpdateName={setUserName} />;
       case 'admin': return <AdminPanel onPreview={() => setCurrentView('course')} />;
+      case 'legal':         return <Legal defaultTab="copyright" />;
+      case 'legal-privacy': return <Legal defaultTab="privacy" />;
+      case 'legal-credits': return <Legal defaultTab="credits" />;
       default: return <Hero onStartGuide={() => setCurrentView('guide')} onStartQuiz={() => setCurrentView('quiz')} />;
     }
   };
@@ -461,7 +465,9 @@ function App() {
               Visit my Website ↗
             </a>
             <span aria-hidden="true">·</span>
-            <span>Accessible to all learners</span>
+            <button onClick={() => setCurrentView('legal-privacy')} style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}>Privacy Policy</button>
+            <span aria-hidden="true">·</span>
+            <button onClick={() => setCurrentView('legal-credits')} style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}>Credits</button>
           </div>
         </div>
       </footer>
