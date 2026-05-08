@@ -32,8 +32,11 @@ export default function Auth({ onLogin }) {
       }
 
       let role = 'student';
-      const userEmail = userCredential.user.email || '';
-      if (userEmail.includes('admin')) role = 'superadmin';
+      const userEmail = (userCredential.user.email || '').toLowerCase();
+      const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase();
+      
+      if (adminEmail && userEmail === adminEmail) role = 'superadmin';
+      else if (userEmail.includes('admin')) role = 'superadmin';
       else if (userEmail.includes('ta') || userEmail.includes('manager')) role = 'quiz_manager';
 
       localStorage.setItem('cs110_role', role);
