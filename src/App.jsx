@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { User, Menu, X } from 'lucide-react'
 import { auth } from './firebase'
@@ -22,6 +22,69 @@ import Profile from './components/Profile'
 import FAQ from './components/FAQ'
 import Tutoring from './components/Tutoring'
 
+// ─── Accessible Dropdown Component ────────────────────────────────────────────
+function NavDropdown({ id, label, isActive, align = 'center', openDropdown, setOpenDropdown, dropdownRef, children }) {
+  const triggerRef = useRef(null);
+  const isOpen = openDropdown === id;
+
+  const open  = () => setOpenDropdown(id);
+  const close = () => { setOpenDropdown(null); triggerRef.current?.focus(); };
+  const toggle = () => (isOpen ? close() : open());
+
+  const handleTriggerKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      open();
+      requestAnimationFrame(() => {
+        dropdownRef.current?.querySelector('[role="menuitem"]')?.focus();
+      });
+    }
+    if (e.key === 'Escape') close();
+  };
+
+  const handleMenuKeyDown = (e) => {
+    const items = [...(dropdownRef.current?.querySelectorAll('[role="menuitem"]') || [])];
+    const idx   = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); items[idx + 1]?.focus(); }
+    if (e.key === 'ArrowUp')   {
+      e.preventDefault();
+      idx <= 0 ? triggerRef.current?.focus() : items[idx - 1]?.focus();
+    }
+    if (e.key === 'Escape') { e.preventDefault(); close(); }
+    if (e.key === 'Tab')    close();
+  };
+
+  return (
+    <div
+      className={`dropdown${isOpen ? ' dropdown--open' : ''}`}
+      ref={dropdownRef}
+      onMouseEnter={open}
+      onMouseLeave={() => setOpenDropdown(null)}
+    >
+      <button
+        ref={triggerRef}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        onKeyDown={handleTriggerKeyDown}
+        onClick={toggle}
+        className={isActive ? 'active' : ''}
+      >
+        {label}
+      </button>
+      <div
+        className={`dropdown-content${align === 'right' ? ' dropdown-content-right' : ''}`}
+        role="menu"
+        aria-label={typeof label === 'string' ? label.replace(' ▾', '') : undefined}
+        onKeyDown={handleMenuKeyDown}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+// ───────────────────────────────────────────────────────────────────────────────
+
 function App() {
   const [currentView, setCurrentView] = useState('home');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -29,6 +92,13 @@ function App() {
   const [userRole, setUserRole] = useState('student');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showBanner, setShowBanner] = useState(() => !localStorage.getItem('cs110_banner_dismissed'));
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const dropdownRefs = {
+    learn:     useRef(null),
+    practice:  useRef(null),
+    community: useRef(null),
+    user:      useRef(null),
+  };
 
   useEffect(() => {
     if (!auth) {
@@ -146,6 +216,8 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* Skip to main content — WCAG 2.4.1 */}
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       {/* Mobile overlay */}
       <div className={`mobile-nav-overlay ${mobileNavOpen ? 'open' : ''}`} onClick={() => setMobileNavOpen(false)} />
 
@@ -186,77 +258,117 @@ function App() {
         )}
       </div>
 
-      <nav className="nav-bar">
-        {/* Logo */}
-        <div className="logo text-gradient" style={{ cursor: 'pointer' }} onClick={() => setCurrentView('home')}>
+      <nav className="nav-bar" aria-label="Main navigation">
+        {/* Logo — button so keyboard users can focus it */}
+        <button
+          className="logo text-gradient"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          onClick={() => setCurrentView('home')}
+          aria-label="C++ Thinker Lab — go to home"
+        >
           C++ Thinker Lab
-        </div>
+        </button>
 
         {/* Desktop nav */}
-        <div className="nav-links">
+        <div className="nav-links" role="menubar" aria-label="Site sections">
+
           {/* Learn dropdown */}
-          <div className="dropdown">
-            <button className={['guide','course','cheatsheet','mistakes','faq'].includes(currentView) ? 'active' : ''}>
-              Learn ▾
-            </button>
-            <div className="dropdown-content">
-              <button onClick={() => setCurrentView('guide')}>📖 Guide (Start Here)</button>
-              <button onClick={() => setCurrentView('cheatsheet')}>Cheat Sheet</button>
-              <button onClick={() => setCurrentView('mistakes')}>Common Mistakes</button>
-              <button onClick={() => setCurrentView('faq')}>FAQ</button>
-            </div>
-          </div>
+          <NavDropdown
+            id="learn"
+            label="Learn ▾"
+            isActive={['guide','cheatsheet','mistakes','faq'].includes(currentView)}
+            openDropdown={openDropdown}
+            setOpenDropdown={setOpenDropdown}
+            dropdownRef={dropdownRefs.learn}
+          >
+            <button role="menuitem" onClick={() => { setCurrentView('guide');      setOpenDropdown(null); }}>📖 Guide (Start Here)</button>
+            <button role="menuitem" onClick={() => { setCurrentView('cheatsheet'); setOpenDropdown(null); }}>Cheat Sheet</button>
+            <button role="menuitem" onClick={() => { setCurrentView('mistakes');   setOpenDropdown(null); }}>Common Mistakes</button>
+            <button role="menuitem" onClick={() => { setCurrentView('faq');        setOpenDropdown(null); }}>FAQ</button>
+          </NavDropdown>
 
           {/* Practice dropdown */}
-          <div className="dropdown">
-            <button className={['quiz','problems','playground','flashcards','notes'].includes(currentView) ? 'active' : ''}>
-              Practice ▾
-            </button>
-            <div className="dropdown-content">
-              <button onClick={() => setCurrentView('quiz')}>Assessment</button>
-              <button onClick={() => setCurrentView('problems')}>Problem Set</button>
-              <button onClick={() => setCurrentView('playground')}>Playground</button>
-              <button onClick={() => setCurrentView('flashcards')}>Flashcards</button>
-              <button onClick={() => setCurrentView('notes')}>My Notes</button>
-            </div>
-          </div>
+          <NavDropdown
+            id="practice"
+            label="Practice ▾"
+            isActive={['quiz','problems','playground','flashcards','notes'].includes(currentView)}
+            openDropdown={openDropdown}
+            setOpenDropdown={setOpenDropdown}
+            dropdownRef={dropdownRefs.practice}
+          >
+            <button role="menuitem" onClick={() => { setCurrentView('quiz');        setOpenDropdown(null); }}>Assessment</button>
+            <button role="menuitem" onClick={() => { setCurrentView('problems');    setOpenDropdown(null); }}>Problem Set</button>
+            <button role="menuitem" onClick={() => { setCurrentView('playground');  setOpenDropdown(null); }}>Playground</button>
+            <button role="menuitem" onClick={() => { setCurrentView('flashcards');  setOpenDropdown(null); }}>Flashcards</button>
+            <button role="menuitem" onClick={() => { setCurrentView('notes');       setOpenDropdown(null); }}>My Notes</button>
+          </NavDropdown>
 
           {/* Community dropdown */}
-          <div className="dropdown">
-            <button className={['leaderboard','about','feedback','tutoring'].includes(currentView) ? 'active' : ''}>
-              Community ▾
-            </button>
-            <div className="dropdown-content">
-              <button onClick={() => setCurrentView('leaderboard')}>Class Leaderboard</button>
-              <button onClick={() => setCurrentView('tutoring')}>1-on-1 Tutoring</button>
-              <button onClick={() => setCurrentView('feedback')}>Feedback</button>
-              <button onClick={() => setCurrentView('about')}>About Me</button>
-            </div>
-          </div>
+          <NavDropdown
+            id="community"
+            label="Community ▾"
+            isActive={['leaderboard','about','feedback','tutoring'].includes(currentView)}
+            openDropdown={openDropdown}
+            setOpenDropdown={setOpenDropdown}
+            dropdownRef={dropdownRefs.community}
+          >
+            <button role="menuitem" onClick={() => { setCurrentView('leaderboard'); setOpenDropdown(null); }}>Class Leaderboard</button>
+            <button role="menuitem" onClick={() => { setCurrentView('tutoring');    setOpenDropdown(null); }}>1-on-1 Tutoring</button>
+            <button role="menuitem" onClick={() => { setCurrentView('feedback');    setOpenDropdown(null); }}>Feedback</button>
+            <button role="menuitem" onClick={() => { setCurrentView('about');       setOpenDropdown(null); }}>About Me</button>
+          </NavDropdown>
 
           {/* Premium Course — standalone CTA */}
-          <button className={`nav-premium ${currentView === 'course' ? 'active' : ''}`} onClick={() => setCurrentView('course')}>
+          <button
+            className={`nav-premium ${currentView === 'course' ? 'active' : ''}`}
+            onClick={() => setCurrentView('course')}
+            aria-current={currentView === 'course' ? 'page' : undefined}
+          >
             ★ Premium Course
           </button>
         </div>
 
-        {/* Right side: user + hamburger */}
+        {/* Right side: user menu + hamburger */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {isAuthenticated ? (
-            <div className="dropdown">
-              <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', cursor: 'pointer', padding: '0.4rem 1rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <User size={16} color="var(--accent-color)" />
-                {userName.split(' ')[0]} ▾
+            <NavDropdown
+              id="user"
+              label={
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <User size={16} color="var(--accent-color)" />
+                  {userName.split(' ')[0]} ▾
+                </span>
+              }
+              isActive={['profile','admin'].includes(currentView)}
+              align="right"
+              openDropdown={openDropdown}
+              setOpenDropdown={setOpenDropdown}
+              dropdownRef={dropdownRefs.user}
+            >
+              <button
+                role="menuitem"
+                onClick={() => { setCurrentView('profile'); setOpenDropdown(null); }}
+              >
+                My Profile
               </button>
-              <div className="dropdown-content dropdown-content-right">
-                <button onClick={() => setCurrentView('profile')}>My Profile</button>
-                {['superadmin', 'quiz_manager'].includes(userRole) && (
-                  <button onClick={() => setCurrentView('admin')} style={{ color: '#fbbf24' }}>⚙ Admin Dashboard</button>
-                )}
-                <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '0.25rem 0' }}></div>
-                <button onClick={handleLogout} style={{ color: '#f87171' }}>Logout</button>
-              </div>
-            </div>
+              {['superadmin', 'quiz_manager'].includes(userRole) && (
+                <button
+                  role="menuitem"
+                  onClick={() => { setCurrentView('admin'); setOpenDropdown(null); }}
+                  style={{ color: '#fbbf24' }}
+                >
+                  ⚙ Admin Dashboard
+                </button>
+              )}
+              <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '0.25rem 0' }} role="separator" />
+              <button
+                role="menuitem"
+                onClick={() => { handleLogout(); setOpenDropdown(null); }}
+                style={{ color: '#f87171' }}
+              >
+                Logout
+              </button>
+            </NavDropdown>
           ) : (
             <button
               onClick={() => setCurrentView('login')}
@@ -268,13 +380,19 @@ function App() {
           )}
 
           {/* Hamburger */}
-          <button className={`hamburger ${mobileNavOpen ? 'open' : ''}`} onClick={() => setMobileNavOpen(v => !v)} aria-label="Menu">
-            <span /><span /><span />
+          <button
+            className={`hamburger ${mobileNavOpen ? 'open' : ''}`}
+            onClick={() => setMobileNavOpen(v => !v)}
+            aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={mobileNavOpen}
+            aria-controls="mobile-nav-drawer"
+          >
+            <span aria-hidden="true" /><span aria-hidden="true" /><span aria-hidden="true" />
           </button>
         </div>
       </nav>
 
-      <main>
+      <main id="main-content" tabIndex={-1}>
         {showBanner && currentView === 'home' && (
           <div className="onboarding-banner">
             <p>👋 <strong>New here?</strong> Start with <button onClick={() => setCurrentView('guide')} style={{ background:'none', border:'none', color:'var(--accent-color)', cursor:'pointer', fontWeight:'bold', padding:0, fontSize:'inherit' }}>the Guide</button> → try the <button onClick={() => setCurrentView('quiz')} style={{ background:'none', border:'none', color:'var(--accent-color)', cursor:'pointer', fontWeight:'bold', padding:0, fontSize:'inherit' }}>Assessment</button> → tackle a <button onClick={() => setCurrentView('problems')} style={{ background:'none', border:'none', color:'var(--accent-color)', cursor:'pointer', fontWeight:'bold', padding:0, fontSize:'inherit' }}>Problem</button> 🚀</p>
@@ -284,24 +402,68 @@ function App() {
         {renderView()}
       </main>
 
-      <footer style={{
-        marginTop: '4rem',
-        paddingTop: '2rem',
-        paddingBottom: '2rem',
-        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        textAlign: 'center',
-        color: '#94a3b8',
-        fontSize: '0.85rem'
-      }}>
-        <p>© {new Date().getFullYear()} C++ Thinker Lab</p>
-        <p style={{ marginTop: '0.5rem' }}>
-          Developed by Dm. Mehedi Hasan Abid for CS:110 Programming and Problem Solving.
-        </p>
-        <p style={{ marginTop: '0.5rem' }}>
-          <a href="https://mh-1294.github.io/abid/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', textDecoration: 'none' }}>
-            Visit my Website
-          </a>
-        </p>
+      <footer className="site-footer" aria-label="Site footer">
+        <div className="footer-grid">
+
+          {/* Brand column */}
+          <div className="footer-brand">
+            <div className="footer-logo text-gradient">C++ Thinker Lab</div>
+            <p className="footer-tagline">
+              A free learning platform for CS:110 students — built to help you think like a programmer.
+            </p>
+            <p className="footer-location">🇨🇦 Built with ❤️ in Regina, SK, Canada</p>
+            <span className="wcag-badge" title="Web Content Accessibility Guidelines 2.1 Level AA compliant">✓ WCAG 2.1 AA</span>
+          </div>
+
+          {/* Learn column */}
+          <nav className="footer-col" aria-label="Learn section links">
+            <h3>Learn</h3>
+            <button onClick={() => setCurrentView('guide')}>Guide (Start Here)</button>
+            <button onClick={() => setCurrentView('cheatsheet')}>Cheat Sheet</button>
+            <button onClick={() => setCurrentView('mistakes')}>Common Mistakes</button>
+            <button onClick={() => setCurrentView('faq')}>FAQ</button>
+            <button onClick={() => setCurrentView('course')} className="footer-premium">★ Premium Course</button>
+          </nav>
+
+          {/* Practice column */}
+          <nav className="footer-col" aria-label="Practice section links">
+            <h3>Practice</h3>
+            <button onClick={() => setCurrentView('quiz')}>Assessment</button>
+            <button onClick={() => setCurrentView('problems')}>Problem Set</button>
+            <button onClick={() => setCurrentView('playground')}>Playground</button>
+            <button onClick={() => setCurrentView('flashcards')}>Flashcards</button>
+            <button onClick={() => setCurrentView('notes')}>My Notes</button>
+          </nav>
+
+          {/* Community column */}
+          <nav className="footer-col" aria-label="Community section links">
+            <h3>Community</h3>
+            <button onClick={() => setCurrentView('leaderboard')}>Class Leaderboard</button>
+            <button onClick={() => setCurrentView('tutoring')}>1-on-1 Tutoring</button>
+            <button onClick={() => setCurrentView('feedback')}>Give Feedback</button>
+            <button onClick={() => setCurrentView('about')}>About the Instructor</button>
+          </nav>
+
+        </div>
+
+        {/* Bottom bar */}
+        <div className="footer-bottom">
+          <p>
+            © {new Date().getFullYear()} C++ Thinker Lab &nbsp;·&nbsp; Developed by Mehedi Hasan Abid &nbsp;·&nbsp; CS:110 Programming and Problem Solving, University of Regina
+          </p>
+          <div className="footer-bottom-links">
+            <a
+              href="https://mh-1294.github.io/abid/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Visit Mehedi's personal website (opens in new tab)"
+            >
+              Visit my Website ↗
+            </a>
+            <span aria-hidden="true">·</span>
+            <span>Accessible to all learners</span>
+          </div>
+        </div>
       </footer>
       <Analytics />
     </div>
