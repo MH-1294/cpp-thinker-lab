@@ -248,7 +248,7 @@ function App() {
                 <User size={16} color="var(--accent-color)" />
                 {userName.split(' ')[0]} ▾
               </button>
-              <div className="dropdown-content" style={{ right: 0, left: 'auto', minWidth: '180px', transform: 'none' }}>
+              <div className="dropdown-content dropdown-content-right">
                 <button onClick={() => setCurrentView('profile')}>My Profile</button>
                 {['superadmin', 'quiz_manager'].includes(userRole) && (
                   <button onClick={() => setCurrentView('admin')} style={{ color: '#fbbf24' }}>⚙ Admin Dashboard</button>

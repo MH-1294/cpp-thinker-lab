@@ -275,7 +275,10 @@ h1, h2, h3 {
 }
 
 .dropdown-content {
-  display: none;
+  /* Use opacity/visibility instead of display so we can add a hide delay */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
   position: absolute;
   background-color: rgba(15, 23, 42, 0.98);
   min-width: 180px;
@@ -283,11 +286,28 @@ h1, h2, h3 {
   z-index: 100;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  top: calc(100% + 8px);
+  /* Shift up by 4px and compensate with padding-top so the gap is covered */
+  top: calc(100% + 4px);
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(-4px);
   padding: 0.5rem 0;
   backdrop-filter: blur(16px);
+  /* Show fast, hide with 150ms grace period so cursor can travel to items */
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s ease,
+    transform 0.15s ease;
+  transition-delay: 0s, 0s, 0s; /* no delay on show */
+}
+
+/* Invisible bridge that fills the gap between trigger and panel */
+.dropdown-content::before {
+  content: '';
+  position: absolute;
+  top: -12px;    /* covers the gap + a little extra */
+  left: 0;
+  right: 0;
+  height: 12px;
 }
 
 .dropdown-content button {
@@ -310,14 +330,39 @@ h1, h2, h3 {
 }
 
 .dropdown:hover .dropdown-content {
-  display: block;
-  animation: fadeInDown 0.15s ease;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s ease,
+    transform 0.15s ease;
+  transition-delay: 0s; /* show immediately */
+}
+
+/* When cursor leaves .dropdown, add 150ms grace before hiding */
+.dropdown:not(:hover) .dropdown-content {
+  transition-delay: 150ms;
 }
 
 @keyframes fadeInDown {
   from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
+
+/* Right-aligned dropdown (profile menu) */
+.dropdown-content-right {
+  right: 0;
+  left: auto;
+  min-width: 180px;
+  transform: translateY(-4px); /* no X translate since it's right-anchored */
+}
+
+.dropdown:hover .dropdown-content-right {
+  transform: translateY(0);
+}
+
 
 /* Onboarding Banner */
 .onboarding-banner {
