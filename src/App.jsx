@@ -261,12 +261,12 @@ function App() {
       <nav className="nav-bar" aria-label="Main navigation">
         {/* Logo — button so keyboard users can focus it */}
         <button
-          className="logo text-gradient"
+          className="logo"
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           onClick={() => setCurrentView('home')}
           aria-label="C++ Thinker Lab — go to home"
         >
-          C++ Thinker Lab
+          <span className="text-gradient">C++ Thinker Lab</span>
         </button>
 
         {/* Desktop nav */}
