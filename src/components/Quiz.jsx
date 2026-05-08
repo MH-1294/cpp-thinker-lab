@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { questions as defaultQuestions } from '../data/questions';
+import { db } from '../firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 const shuffleArray = (array) => {
   const arr = [...array];
@@ -102,7 +104,7 @@ export default function Quiz({ isAuthenticated, onRequireAuth }) {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentQuestionIndex + 1 < allQuestions.length) {
       setCurrentQuestionIndex(i => i + 1);
       setSelectedAnswer(null);
@@ -112,15 +114,39 @@ export default function Quiz({ isAuthenticated, onRequireAuth }) {
       const secondsTaken = Math.floor((finishTime - startTime) / 1000);
       setTimeTaken(secondsTaken);
 
-      const existingData = JSON.parse(localStorage.getItem('cs110_leaderboard')) || [];
-      const newEntry = { 
-        name: userName, 
-        score, 
-        total: allQuestions.length, 
+      const finalScore = selectedAnswer === currentQ.correctAnswer ? score + 1 : score;
+
+      const badge = (() => {
+        const total = allQuestions.length;
+        if (finalScore === total) return 'C++ Wizard';
+        if (finalScore >= total * 0.8) return 'Syntax Master';
+        if (finalScore >= total * 0.6) return 'Logic Thinker';
+        if (finalScore >= total * 0.4) return 'Loop Guru';
+        return 'Bug Hunter';
+      })();
+
+      const newEntry = {
+        name: userName,
+        score: finalScore,
+        total: allQuestions.length,
         timeTaken: secondsTaken,
-        date: new Date().toLocaleDateString() 
+        badge,
+        date: new Date().toLocaleDateString()
       };
+
+      // Save to localStorage (fallback)
+      const existingData = JSON.parse(localStorage.getItem('cs110_leaderboard')) || [];
       localStorage.setItem('cs110_leaderboard', JSON.stringify([...existingData, newEntry]));
+
+      // Save to Firestore (real-time leaderboard)
+      if (db) {
+        try {
+          await addDoc(collection(db, 'leaderboard'), { ...newEntry, timestamp: Date.now() });
+        } catch (e) {
+          console.error('Failed to save to Firestore leaderboard:', e);
+        }
+      }
+
       setIsFinished(true);
     }
   };

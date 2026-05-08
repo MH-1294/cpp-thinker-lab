@@ -201,8 +201,11 @@ function App() {
                   <User size={16} color="var(--accent-color)" />
                   {userName.split(' ')[0]} ▾
                 </button>
-                <div className="dropdown-content" style={{ right: 0, left: 'auto', minWidth: '150px' }}>
+                <div className="dropdown-content" style={{ right: 0, left: 'auto', minWidth: '170px' }}>
                   <button onClick={() => setCurrentView('profile')}>My Profile</button>
+                  {['superadmin', 'quiz_manager'].includes(userRole) && (
+                    <button onClick={() => setCurrentView('admin')} style={{ color: '#fbbf24' }}>⚙ Admin Dashboard</button>
+                  )}
                   <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '0.25rem 0' }}></div>
                   <button onClick={handleLogout} style={{ color: '#f87171' }}>Logout</button>
                 </div>
@@ -241,17 +244,6 @@ function App() {
           <a href="https://mh-1294.github.io/abid/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', textDecoration: 'none' }}>
             Visit my Website
           </a>
-          {['superadmin', 'quiz_manager'].includes(userRole) && (
-            <>
-              <span style={{ margin: '0 0.5rem', color: '#475569' }}>|</span>
-              <button 
-                onClick={() => setCurrentView('admin')} 
-                style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '0.85rem', padding: 0 }}
-              >
-                Admin Dashboard
-              </button>
-            </>
-          )}
         </p>
       </footer>
       <Analytics />
