@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, CheckCircle, Settings, Upload, Bot, Copy, FileCode2, HelpCircle, Video, Users, PlayCircle, Edit } from 'lucide-react';
+import { PlusCircle, Trash2, Settings, Upload, Bot, Copy, FileCode2, HelpCircle, Video, Users, PlayCircle, Edit, Eye, EyeOff, Loader } from 'lucide-react';
+import { db } from '../firebase';
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, orderBy, query } from 'firebase/firestore';
+import { problems as staticProblems } from '../data/problems';
 
 export default function AdminPanel({ onPreview }) {
   const [userRole, setUserRole] = useState('superadmin');
@@ -29,10 +32,10 @@ export default function AdminPanel({ onPreview }) {
   const [probOutput, setProbOutput] = useState('');
   const [probSampleIn, setProbSampleIn] = useState('');
   const [probSampleOut, setProbSampleOut] = useState('');
-  const [customProblems, setCustomProblems] = useState([]);
+  const [firestoreProblems, setFirestoreProblems] = useState([]);
   const [isProbSaved, setIsProbSaved] = useState(false);
-  const [bulkProbJSON, setBulkProbJSON] = useState('');
-  const [bulkProbMessage, setBulkProbMessage] = useState('');
+  const [probLoading, setProbLoading] = useState(false);
+  const [seedMessage, setSeedMessage] = useState('');
 
   // --- COURSE STATE ---
   const [lessonIdToEdit, setLessonIdToEdit] = useState(null);
@@ -70,8 +73,7 @@ export default function AdminPanel({ onPreview }) {
       setShuffleOptions(parsed.shuffleOptions ?? true);
     }
 
-    const savedP = localStorage.getItem('cs110_custom_problems');
-    if (savedP) setCustomProblems(JSON.parse(savedP));
+    fetchFirestoreProblems();
 
     const savedC = localStorage.getItem('cs110_custom_course');
     if (savedC) setCustomLessons(JSON.parse(savedC));
@@ -129,43 +131,61 @@ export default function AdminPanel({ onPreview }) {
   };
 
   // --- PROBLEM HANDLERS ---
-  const handleProbSubmit = (e) => {
+  const fetchFirestoreProblems = async () => {
+    if (!db) return;
+    setProbLoading(true);
+    try {
+      const q = query(collection(db, 'problems'), orderBy('createdAt', 'asc'));
+      const snap = await getDocs(q);
+      setFirestoreProblems(snap.docs.map(d => ({ firestoreId: d.id, ...d.data() })));
+    } catch (e) { console.error(e); }
+    setProbLoading(false);
+  };
+
+  const handleProbSubmit = async (e) => {
     e.preventDefault();
     if (!probTitle || !probDesc || !probInput || !probOutput) {
-      alert("Please fill in Title, Description, Input, and Output!"); return;
+      alert('Please fill in Title, Description, Input, and Output!'); return;
     }
-    const newP = { id: "custom-" + Date.now(), title: probTitle, source: probSource, description: probDesc, input: probInput, output: probOutput, sampleInput: probSampleIn, sampleOutput: probSampleOut };
-    const updatedList = [...customProblems, newP];
-    setCustomProblems(updatedList); localStorage.setItem('cs110_custom_problems', JSON.stringify(updatedList));
+    const newP = { title: probTitle, source: probSource, description: probDesc, input: probInput, output: probOutput, sampleInput: probSampleIn, sampleOutput: probSampleOut, isVisible: true, createdAt: Date.now() };
+    if (db) {
+      await addDoc(collection(db, 'problems'), newP);
+      await fetchFirestoreProblems();
+    }
     setProbTitle(''); setProbSource('Custom'); setProbDesc(''); setProbInput(''); setProbOutput(''); setProbSampleIn(''); setProbSampleOut('');
     setIsProbSaved(true); setTimeout(() => setIsProbSaved(false), 3000);
   };
 
-  const handleProbBulk = () => {
-    try {
-      const parsed = JSON.parse(bulkProbJSON);
-      if (!Array.isArray(parsed)) throw new Error("JSON must be an array of objects.");
-      const validated = parsed.map(p => ({
-        id: "custom-" + Date.now() + Math.random(), title: p.title || "Untitled Problem", source: p.source || "AI Generated", description: p.description || "Missing description.", input: p.input || "Missing input format.", output: p.output || "Missing output format.", sampleInput: p.sampleInput || "", sampleOutput: p.sampleOutput || ""
-      }));
-      const updatedList = [...customProblems, ...validated];
-      setCustomProblems(updatedList); localStorage.setItem('cs110_custom_problems', JSON.stringify(updatedList));
-      setBulkProbJSON(''); setBulkProbMessage(`Successfully imported ${validated.length} problems!`); setTimeout(() => setBulkProbMessage(''), 3000);
-    } catch (e) {
-      setBulkProbMessage(`Error: ${e.message}`); setTimeout(() => setBulkProbMessage(''), 4000);
+  const handleProbDelete = async (firestoreId) => {
+    if (!window.confirm('Delete this problem?')) return;
+    if (db) {
+      await deleteDoc(doc(db, 'problems', firestoreId));
+      setFirestoreProblems(prev => prev.filter(p => p.firestoreId !== firestoreId));
     }
   };
 
-  const handleProbDelete = (id) => {
-    if (window.confirm("Delete this custom problem?")) {
-      const updatedList = customProblems.filter(p => p.id !== id);
-      setCustomProblems(updatedList); localStorage.setItem('cs110_custom_problems', JSON.stringify(updatedList));
+  const handleToggleVisibility = async (problem) => {
+    if (!db) return;
+    const ref = doc(db, 'problems', problem.firestoreId);
+    const newVal = !problem.isVisible;
+    await updateDoc(ref, { isVisible: newVal });
+    setFirestoreProblems(prev => prev.map(p => p.firestoreId === problem.firestoreId ? { ...p, isVisible: newVal } : p));
+  };
+
+  const handleSeedProblems = async () => {
+    if (!db) { setSeedMessage('Firebase not connected.'); return; }
+    setSeedMessage('Seeding...');
+    for (const p of staticProblems) {
+      await addDoc(collection(db, 'problems'), { ...p, isVisible: true, createdAt: Date.now() });
     }
+    await fetchFirestoreProblems();
+    setSeedMessage(`Seeded ${staticProblems.length} problems!`);
+    setTimeout(() => setSeedMessage(''), 4000);
   };
 
   const copyProbPrompt = () => {
     navigator.clipboard.writeText(`Please generate 3 scenario-based competitive programming challenges suitable for a beginner C++ course. \nOutput exactly as a raw JSON array format: \n[{"title": "...", "source": "AI Scenario", "description": "...", "input": "...", "output": "...", "sampleInput": "...", "sampleOutput": "..."}]`);
-    alert("AI Prompt copied!");
+    alert('AI Prompt copied!');
   };
 
   // --- COURSE HANDLERS ---
@@ -348,49 +368,77 @@ export default function AdminPanel({ onPreview }) {
 
       {activeTab === 'problems' && (
         <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
+
+          {/* Seed + Add Form row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.5rem' }}>
             <div className="glass-panel">
-              <h3 className="mb-4" style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><PlusCircle size={20} /> Add Manual Problem</h3>
+              <h3 className="mb-4" style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><PlusCircle size={20} /> Add New Problem</h3>
               <form onSubmit={handleProbSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem' }}>
-                  <input type="text" placeholder="Problem Title" value={probTitle} onChange={(e) => setProbTitle(e.target.value)} style={{ padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white' }} />
-                  <input type="text" placeholder="Source (e.g. Custom)" value={probSource} onChange={(e) => setProbSource(e.target.value)} style={{ padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white' }} />
+                  <input type="text" placeholder="Problem Title" value={probTitle} onChange={(e) => setProbTitle(e.target.value)} style={{ padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  <input type="text" placeholder="Source" value={probSource} onChange={(e) => setProbSource(e.target.value)} style={{ padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }} />
                 </div>
-                <textarea placeholder="Problem Description..." value={probDesc} onChange={(e) => setProbDesc(e.target.value)} style={{ width: '100%', padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white' }} rows="3" />
+                <textarea placeholder="Problem Description..." value={probDesc} onChange={(e) => setProbDesc(e.target.value)} style={{ width: '100%', padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }} rows="3" />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  <textarea placeholder="Input Format..." value={probInput} onChange={(e) => setProbInput(e.target.value)} style={{ padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white' }} rows="2" />
-                  <textarea placeholder="Output Format..." value={probOutput} onChange={(e) => setProbOutput(e.target.value)} style={{ padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white' }} rows="2" />
+                  <textarea placeholder="Input Format..." value={probInput} onChange={(e) => setProbInput(e.target.value)} style={{ padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }} rows="2" />
+                  <textarea placeholder="Output Format..." value={probOutput} onChange={(e) => setProbOutput(e.target.value)} style={{ padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }} rows="2" />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  <textarea placeholder="Sample Input..." value={probSampleIn} onChange={(e) => setProbSampleIn(e.target.value)} style={{ padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white', fontFamily: 'monospace' }} rows="2" />
-                  <textarea placeholder="Sample Output..." value={probSampleOut} onChange={(e) => setProbSampleOut(e.target.value)} style={{ padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white', fontFamily: 'monospace' }} rows="2" />
+                  <textarea placeholder="Sample Input..." value={probSampleIn} onChange={(e) => setProbSampleIn(e.target.value)} style={{ padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white', fontFamily: 'monospace', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }} rows="2" />
+                  <textarea placeholder="Sample Output..." value={probSampleOut} onChange={(e) => setProbSampleOut(e.target.value)} style={{ padding: '0.5rem', background: 'rgba(0,0,0,0.3)', color: 'white', fontFamily: 'monospace', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }} rows="2" />
                 </div>
-                <button type="submit" className="btn btn-secondary" style={{ background: isProbSaved ? 'var(--success-color)' : 'rgba(255,255,255,0.1)' }}>{isProbSaved ? 'Saved!' : 'Add Problem'}</button>
+                <button type="submit" className="btn" style={{ background: isProbSaved ? 'var(--success-color)' : 'var(--accent-color)', color: '#0f172a', fontWeight: 'bold' }}>{isProbSaved ? '✓ Saved to Database!' : 'Add to Database'}</button>
               </form>
             </div>
-            <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column' }}>
-              <h3 className="mb-2" style={{ color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Upload size={20} /> AI JSON Import (Problems)</h3>
-              <button onClick={copyProbPrompt} className="btn mb-4" style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', borderColor: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <Bot size={18} /> Copy Prompt for ChatGPT <Copy size={14} />
-              </button>
-              <textarea value={bulkProbJSON} onChange={(e) => setBulkProbJSON(e.target.value)} placeholder="[ { &quot;title&quot;: &quot;Area&quot;, &quot;description&quot;: &quot;...&quot; } ]" style={{ flex: 1, minHeight: '150px', width: '100%', padding: '1rem', background: 'rgba(0,0,0,0.4)', color: '#10b981', fontFamily: 'monospace', border: '1px solid rgba(255,255,255,0.1)' }} />
-              {bulkProbMessage && <div style={{ color: bulkProbMessage.includes('Error') ? '#f87171' : '#34d399', fontSize: '0.9rem', margin: '0.5rem 0' }}>{bulkProbMessage}</div>}
-              <button onClick={handleProbBulk} className="btn" style={{ background: '#fbbf24', color: '#0f172a', fontWeight: 'bold' }}>Import JSON Array</button>
+
+            <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ padding: '1rem', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: '10px' }}>
+                <h4 style={{ color: '#fbbf24', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Upload size={18} /> Seed Initial Problems</h4>
+                <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '1rem' }}>Upload the built-in classic problems to Firebase. Only run this once to populate your database for the first time.</p>
+                <button onClick={handleSeedProblems} className="btn" style={{ width: '100%', background: '#fbbf24', color: '#0f172a', fontWeight: 'bold' }}>Seed {staticProblems.length} Classic Problems</button>
+                {seedMessage && <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: seedMessage.includes('error') || seedMessage.includes('not') ? '#f87171' : '#34d399' }}>{seedMessage}</div>}
+              </div>
+              <div style={{ padding: '1rem', background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)', borderRadius: '10px' }}>
+                <h4 style={{ color: '#38bdf8', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Bot size={18} /> AI Prompt</h4>
+                <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '1rem' }}>Copy a prompt for ChatGPT to generate new problems for you.</p>
+                <button onClick={copyProbPrompt} className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><Copy size={14} /> Copy AI Prompt</button>
+              </div>
             </div>
           </div>
-          {customProblems.length > 0 && (
-            <div className="glass-panel">
-              <h3 className="mb-4" style={{ color: 'white' }}>Custom Problem Bank ({customProblems.length})</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {customProblems.map(p => (
-                  <div key={p.id} style={{ padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between' }}>
-                    <div><strong style={{ color: 'var(--accent-color)' }}>{p.title}</strong><div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Source: {p.source}</div></div>
-                    <button onClick={() => handleProbDelete(p.id)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer' }}><Trash2 size={18} /></button>
+
+          {/* Live Problem List with Visibility Toggles */}
+          <div className="glass-panel">
+            <h3 className="mb-4" style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FileCode2 size={20} /> Problem Bank ({firestoreProblems.length})
+              {probLoading && <Loader size={16} style={{ animation: 'spin 1s linear infinite', color: '#94a3b8' }} />}
+            </h3>
+            {!db ? (
+              <p style={{ color: '#f87171', fontSize: '0.9rem' }}>⚠ Firebase not connected. Add your API keys to enable the database.</p>
+            ) : firestoreProblems.length === 0 ? (
+              <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>No problems in the database yet. Use "Seed Initial Problems" above to get started!</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {firestoreProblems.map(p => (
+                  <div key={p.firestoreId} style={{ padding: '0.85rem 1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: `1px solid ${p.isVisible ? 'rgba(56,189,248,0.15)' : 'rgba(248,113,113,0.2)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', opacity: p.isVisible ? 1 : 0.6 }}>
+                    <div style={{ flex: 1 }}>
+                      <strong style={{ color: p.isVisible ? 'var(--accent-color)' : '#94a3b8' }}>{p.title}</strong>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem' }}>Source: {p.source}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                      <button
+                        onClick={() => handleToggleVisibility(p)}
+                        title={p.isVisible ? 'Hide from students' : 'Show to students'}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.75rem', borderRadius: '20px', border: `1px solid ${p.isVisible ? 'rgba(56,189,248,0.4)' : 'rgba(248,113,113,0.4)'}`, background: p.isVisible ? 'rgba(56,189,248,0.1)' : 'rgba(248,113,113,0.1)', color: p.isVisible ? '#38bdf8' : '#f87171', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}
+                      >
+                        {p.isVisible ? <><Eye size={14} /> Visible</> : <><EyeOff size={14} /> Hidden</>}
+                      </button>
+                      <button onClick={() => handleProbDelete(p.firestoreId)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.25rem' }}><Trash2 size={16} /></button>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import { User } from 'lucide-react'
+import { auth } from './firebase'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
 import Hero from './components/Hero'
 import NewcomerGuide from './components/NewcomerGuide'
 import Quiz from './components/Quiz'
@@ -17,6 +20,7 @@ import Auth from './components/Auth'
 import Course from './components/Course'
 import Profile from './components/Profile'
 import FAQ from './components/FAQ'
+import Tutoring from './components/Tutoring'
 
 function App() {
   const [currentView, setCurrentView] = useState('home');
@@ -25,24 +29,63 @@ function App() {
   const [userRole, setUserRole] = useState('student');
 
   useEffect(() => {
-    // Check if user is already authenticated
-    const token = localStorage.getItem('cs110_auth_token');
-    const savedName = localStorage.getItem('cs110_username');
-    const savedRole = localStorage.getItem('cs110_role') || 'student';
-    if (token) {
-      setIsAuthenticated(true);
-      if (savedName) setUserName(savedName);
-      setUserRole(savedRole);
+    if (!auth) {
+      // Fallback check for mock login
+      const token = localStorage.getItem('cs110_auth_token');
+      const savedName = localStorage.getItem('cs110_username');
+      const savedRole = localStorage.getItem('cs110_role') || 'student';
+      if (token) {
+        setIsAuthenticated(true);
+        if (savedName) setUserName(savedName);
+        setUserRole(savedRole);
+      }
+      return;
     }
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setIsAuthenticated(true);
+        setUserName(user.displayName || user.email?.split('@')[0] || 'Student');
+        const savedRole = localStorage.getItem('cs110_role') || 'student';
+        setUserRole(savedRole);
+      } else {
+        // Fallback check for mock login
+        const token = localStorage.getItem('cs110_auth_token');
+        const savedName = localStorage.getItem('cs110_username');
+        const savedRole = localStorage.getItem('cs110_role') || 'student';
+        if (token) {
+          setIsAuthenticated(true);
+          if (savedName) setUserName(savedName);
+          setUserRole(savedRole);
+        } else {
+          setIsAuthenticated(false);
+          setUserName('');
+          setUserRole('student');
+        }
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const handleLogin = (name, role) => {
     setIsAuthenticated(true);
     setUserName(name);
     setUserRole(role);
+    setCurrentView('home');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      if (auth.currentUser) {
+        await signOut(auth);
+      }
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
+    
     localStorage.removeItem('cs110_auth_token');
     localStorage.removeItem('cs110_username');
     localStorage.removeItem('cs110_role');
@@ -59,6 +102,7 @@ function App() {
     }
 
     if (currentView === 'login') {
+      if (isAuthenticated) return <Hero onStartGuide={() => setCurrentView('guide')} onStartQuiz={() => setCurrentView('quiz')} />;
       return <Auth onLogin={handleLogin} />;
     }
 
@@ -81,7 +125,7 @@ function App() {
       case 'quiz': return <Quiz isAuthenticated={isAuthenticated} onRequireAuth={() => setCurrentView('login')} />;
       case 'course': return <Course isAuthenticated={isAuthenticated} onRequireAuth={() => setCurrentView('login')} />;
       case 'playground': return <Playground />;
-      case 'problems': return <ProblemSet onSolve={() => setCurrentView('playground')} />;
+      case 'problems': return <ProblemSet onSolve={() => setCurrentView('playground')} userRole={userRole} />;
       case 'cheatsheet': return <CheatSheet />;
       case 'flashcards': return <Flashcards />;
       case 'mistakes': return <CommonMistakes />;
@@ -90,6 +134,7 @@ function App() {
       case 'about': return <AboutMe />;
       case 'faq': return <FAQ />;
       case 'feedback': return <Feedback />;
+      case 'tutoring': return <Tutoring isAuthenticated={isAuthenticated} userName={userName} />;
       case 'profile': return <Profile onUpdateName={setUserName} />;
       case 'admin': return <AdminPanel onPreview={() => setCurrentView('course')} />;
       default: return <Hero onStartGuide={() => setCurrentView('guide')} onStartQuiz={() => setCurrentView('quiz')} />;
@@ -137,11 +182,12 @@ function App() {
             </div>
 
             <div className="dropdown">
-              <button className={['leaderboard', 'about', 'feedback'].includes(currentView) ? 'active' : ''}>
+              <button className={['leaderboard', 'about', 'feedback', 'tutoring'].includes(currentView) ? 'active' : ''}>
                 Community ▾
               </button>
               <div className="dropdown-content">
                 <button onClick={() => setCurrentView('leaderboard')}>Class Leaderboard</button>
+                <button onClick={() => setCurrentView('tutoring')}>1-on-1 Tutoring</button>
                 <button onClick={() => setCurrentView('feedback')}>Feedback</button>
                 <button onClick={() => setCurrentView('about')}>About Me</button>
               </div>
@@ -208,6 +254,7 @@ function App() {
           )}
         </p>
       </footer>
+      <Analytics />
     </div>
   )
 }

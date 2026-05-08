@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Star } from 'lucide-react';
+import { collection, addDoc, getDocs, orderBy, query } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export default function Feedback() {
   const [feedbacks, setFeedbacks] = useState([
@@ -14,34 +16,85 @@ export default function Feedback() {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
-    const savedFeedbacks = localStorage.getItem('cs110_feedbacks');
-    if (savedFeedbacks) {
-      setFeedbacks(JSON.parse(savedFeedbacks));
-    }
+    const fetchFeedbacks = async () => {
+      if (!db) {
+        console.warn("DB not initialized, falling back to local storage.");
+        const savedFeedbacks = localStorage.getItem('cs110_feedbacks');
+        if (savedFeedbacks) {
+          setFeedbacks(JSON.parse(savedFeedbacks));
+        }
+        return;
+      }
+      try {
+        const q = query(collection(db, "feedbacks"), orderBy("timestamp", "desc"));
+        const querySnapshot = await getDocs(q);
+        const fetchedFeedbacks = [];
+        querySnapshot.forEach((doc) => {
+          fetchedFeedbacks.push({ id: doc.id, ...doc.data() });
+        });
+        
+        if (fetchedFeedbacks.length > 0) {
+          setFeedbacks(fetchedFeedbacks);
+        }
+      } catch (e) {
+        console.error("Error fetching feedbacks: ", e);
+        // Fallback to local storage if Firebase isn't configured yet
+        const savedFeedbacks = localStorage.getItem('cs110_feedbacks');
+        if (savedFeedbacks) {
+          setFeedbacks(JSON.parse(savedFeedbacks));
+        }
+      }
+    };
+
+    fetchFeedbacks();
     
     const savedName = localStorage.getItem('cs110_username');
     if (savedName) setNewName(savedName);
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim() || !newName.trim()) return;
 
     const newFeedback = {
-      id: Date.now(),
       name: newName,
       rating: newRating,
-      comment: newComment
+      comment: newComment,
+      timestamp: Date.now()
     };
 
-    const updatedFeedbacks = [newFeedback, ...feedbacks];
-    setFeedbacks(updatedFeedbacks);
-    localStorage.setItem('cs110_feedbacks', JSON.stringify(updatedFeedbacks));
-    
-    setNewComment('');
-    setIsSubmitted(true);
-    
-    setTimeout(() => setIsSubmitted(false), 3000);
+    if (!db) {
+      const fallbackFeedback = { id: Date.now(), ...newFeedback };
+      const updatedFeedbacks = [fallbackFeedback, ...feedbacks];
+      setFeedbacks(updatedFeedbacks);
+      localStorage.setItem('cs110_feedbacks', JSON.stringify(updatedFeedbacks));
+      
+      setNewComment('');
+      setIsSubmitted(true);
+      setTimeout(() => setIsSubmitted(false), 3000);
+      return;
+    }
+
+    try {
+      const docRef = await addDoc(collection(db, "feedbacks"), newFeedback);
+      const feedbackWithId = { id: docRef.id, ...newFeedback };
+      setFeedbacks([feedbackWithId, ...feedbacks]);
+      
+      setNewComment('');
+      setIsSubmitted(true);
+      setTimeout(() => setIsSubmitted(false), 3000);
+    } catch (e) {
+      console.error("Error adding document: ", e);
+      // Fallback for local storage
+      const fallbackFeedback = { id: Date.now(), ...newFeedback };
+      const updatedFeedbacks = [fallbackFeedback, ...feedbacks];
+      setFeedbacks(updatedFeedbacks);
+      localStorage.setItem('cs110_feedbacks', JSON.stringify(updatedFeedbacks));
+      
+      setNewComment('');
+      setIsSubmitted(true);
+      setTimeout(() => setIsSubmitted(false), 3000);
+    }
   };
 
   return (

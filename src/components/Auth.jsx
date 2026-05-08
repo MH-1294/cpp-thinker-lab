@@ -1,27 +1,63 @@
 import React, { useState } from 'react';
+import { auth, googleProvider } from '../firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile } from 'firebase/auth';
 
 export default function Auth({ onLogin }) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleMockLogin = (e, providerName) => {
+  const handleAuth = async (e, providerName) => {
     e.preventDefault();
+    setError('');
     
-    // Simulate a successful login/signup and infer role based on email or provider
-    const fakeUser = providerName ? providerName + " User" : (isSignUp && fullName ? fullName : email.split('@')[0] || "Student");
-    
-    let role = 'student';
-    if (!providerName) {
-      if (email.includes('admin')) role = 'superadmin';
-      else if (email.includes('ta') || email.includes('manager')) role = 'quiz_manager';
-    }
+    try {
+      let userCredential;
+      let displayName = '';
+      
+      if (providerName === 'Google') {
+        userCredential = await signInWithPopup(auth, googleProvider);
+        displayName = userCredential.user.displayName || "Google User";
+      } else {
+        if (isSignUp) {
+          userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          await updateProfile(userCredential.user, { displayName: fullName });
+          displayName = fullName;
+        } else {
+          userCredential = await signInWithEmailAndPassword(auth, email, password);
+          displayName = userCredential.user.displayName || email.split('@')[0];
+        }
+      }
 
-    localStorage.setItem('cs110_auth_token', 'mock_token_123');
-    localStorage.setItem('cs110_username', fakeUser);
-    localStorage.setItem('cs110_role', role);
-    onLogin(fakeUser, role);
+      let role = 'student';
+      const userEmail = userCredential.user.email || '';
+      if (userEmail.includes('admin')) role = 'superadmin';
+      else if (userEmail.includes('ta') || userEmail.includes('manager')) role = 'quiz_manager';
+
+      localStorage.setItem('cs110_role', role);
+      onLogin(displayName, role);
+
+    } catch (err) {
+      console.error("Auth Error:", err);
+      // Fallback for mock login if Firebase is not configured or errors
+      if (!import.meta.env.VITE_FIREBASE_API_KEY || err.code === 'auth/invalid-api-key' || err.message.includes('API key')) {
+        console.warn("Falling back to mock login due to missing Firebase config");
+        const fallbackUser = providerName ? providerName + " User" : (isSignUp && fullName ? fullName : email.split('@')[0] || "Student");
+        let role = 'student';
+        if (!providerName) {
+          if (email.includes('admin')) role = 'superadmin';
+          else if (email.includes('ta') || email.includes('manager')) role = 'quiz_manager';
+        }
+        localStorage.setItem('cs110_auth_token', 'mock_token_123');
+        localStorage.setItem('cs110_username', fallbackUser);
+        localStorage.setItem('cs110_role', role);
+        onLogin(fallbackUser, role);
+      } else {
+        setError("Error: " + err.message);
+      }
+    }
   };
 
   return (
@@ -38,7 +74,8 @@ export default function Auth({ onLogin }) {
 
         {/* OAuth Providers */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
-          <button onClick={(e) => handleMockLogin(e, "Google")} className="btn btn-secondary" style={{ background: 'white', color: '#333', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+          {error && <div style={{ color: '#f87171', fontSize: '0.9rem', marginBottom: '0.5rem', background: 'rgba(248, 113, 113, 0.1)', padding: '0.5rem', borderRadius: '4px' }}>{error}</div>}
+          <button onClick={(e) => handleAuth(e, "Google")} className="btn btn-secondary" style={{ background: 'white', color: '#333', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
             <svg style={{ width: '18px' }} viewBox="0 0 48 48">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
               <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -48,12 +85,12 @@ export default function Auth({ onLogin }) {
             Continue with Google
           </button>
           
-          <button onClick={(e) => handleMockLogin(e, "Apple")} className="btn btn-secondary" style={{ background: 'black', color: 'white', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: '1px solid #333' }}>
+          <button onClick={(e) => handleAuth(e, "Apple")} className="btn btn-secondary" style={{ background: 'black', color: 'white', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: '1px solid #333' }}>
             <svg style={{ width: '18px', fill: 'currentColor' }} viewBox="0 0 384 512"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
             Continue with Apple
           </button>
 
-          <button onClick={(e) => handleMockLogin(e, "Facebook")} className="btn btn-secondary" style={{ background: '#1877F2', color: 'white', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: 'none' }}>
+          <button onClick={(e) => handleAuth(e, "Facebook")} className="btn btn-secondary" style={{ background: '#1877F2', color: 'white', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: 'none' }}>
             <svg style={{ width: '18px', fill: 'currentColor' }} viewBox="0 0 320 512"><path d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z"/></svg>
             Continue with Facebook
           </button>
@@ -66,7 +103,7 @@ export default function Auth({ onLogin }) {
         </div>
 
         {/* Standard Email/Password */}
-        <form onSubmit={(e) => handleMockLogin(e, "")} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form onSubmit={(e) => handleAuth(e, "")} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {isSignUp && (
             <input 
               type="text" 
