@@ -5,10 +5,9 @@ export default function AboutMe() {
     <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div className="glass-panel mb-4" style={{ display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <img 
-          src="https://mh-1294.github.io/abid/assets/img/prof_pic.jpg" 
+          src="https://mh-1294.github.io/abid/assets/img/mehedi_pic.jpg" 
           alt="Dm. Mehedi Hasan Abid" 
           style={{ width: '200px', height: '200px', borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--accent-color)' }}
-          onError={(e) => { e.target.src = 'https://mh-1294.github.io/abid/mehedi_pic.jpg'; }}
         />
         <div>
           <h2 className="text-gradient" style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Dm. Mehedi Hasan Abid</h2>
