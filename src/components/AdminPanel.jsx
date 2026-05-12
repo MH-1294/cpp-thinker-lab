@@ -670,6 +670,7 @@ export default function AdminPanel({ onPreview }) {
                 ))}
               </div>
             )}
+          </div>
         </div>
       )}
 
