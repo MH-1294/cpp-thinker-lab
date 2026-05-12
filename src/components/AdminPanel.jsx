@@ -59,6 +59,7 @@ export default function AdminPanel({ onPreview }) {
   const [contestTitle, setContestTitle] = useState('');
   const [contestDesc, setContestDesc] = useState('');
   const [contestStart, setContestStart] = useState('');
+  const [contestDuration, setContestDuration] = useState('2'); // hours
   const [contestEnd, setContestEnd] = useState('');
   const [contestType, setContestType] = useState('individual');
   const [selectedProbIds, setSelectedProbIds] = useState([]);
@@ -330,11 +331,18 @@ export default function AdminPanel({ onPreview }) {
       alert('Please fill in Title, Start/End time, and select at least one problem!');
       return;
     }
+    let finalEndTime = contestEnd;
+    if (!finalEndTime && contestStart && contestDuration) {
+      const start = new Date(contestStart);
+      start.setHours(start.getHours() + parseInt(contestDuration));
+      finalEndTime = start.toISOString().slice(0, 16);
+    }
+
     const newContest = {
       title: contestTitle,
       description: contestDesc,
       startTime: contestStart,
-      endTime: contestEnd,
+      endTime: finalEndTime,
       type: contestType,
       problemIds: selectedProbIds,
       createdAt: Date.now(),
@@ -683,14 +691,49 @@ export default function AdminPanel({ onPreview }) {
                 <input type="text" placeholder="Contest Title" value={contestTitle} onChange={(e) => setContestTitle(e.target.value)} style={{ padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
                 <textarea placeholder="Description (Optional)..." value={contestDesc} onChange={(e) => setContestDesc(e.target.value)} style={{ padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} rows="2" />
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>Start Time</label>
-                    <input type="datetime-local" value={contestStart} onChange={(e) => setContestStart(e.target.value)} style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 'bold' }}>Schedule Contest</label>
+                    <button type="button" onClick={() => setContestStart(new Date().toISOString().slice(0, 16))} style={{ fontSize: '0.75rem', background: 'rgba(56,189,248,0.1)', color: 'var(--accent-color)', border: '1px solid rgba(56,189,248,0.2)', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}>Start Now</button>
                   </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>End Time</label>
-                    <input type="datetime-local" value={contestEnd} onChange={(e) => setContestEnd(e.target.value)} style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                        <Calendar size={14} color="var(--accent-color)" />
+                        <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Start Date & Time</span>
+                      </div>
+                      <input type="datetime-local" value={contestStart} onChange={(e) => setContestStart(e.target.value)} style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.9rem' }} />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                          <Clock size={14} color="#fbbf24" />
+                          <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Duration</span>
+                        </div>
+                        <select value={contestDuration} onChange={(e) => { setContestDuration(e.target.value); setContestEnd(''); }} style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.9rem' }}>
+                          <option value="1">1 Hour</option>
+                          <option value="2">2 Hours</option>
+                          <option value="3">3 Hours</option>
+                          <option value="4">4 Hours</option>
+                          <option value="12">12 Hours</option>
+                          <option value="24">24 Hours (1 Day)</option>
+                          <option value="48">48 Hours (2 Days)</option>
+                          <option value="custom">Custom End Time...</option>
+                        </select>
+                      </div>
+                      
+                      {contestDuration === 'custom' && (
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                            <Settings size={14} color="#f87171" />
+                            <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Ends At</span>
+                          </div>
+                          <input type="datetime-local" value={contestEnd} onChange={(e) => setContestEnd(e.target.value)} style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.9rem' }} />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
