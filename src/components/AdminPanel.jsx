@@ -332,10 +332,12 @@ export default function AdminPanel({ onPreview }) {
       return;
     }
     let finalEndTime = contestEnd;
-    if (!finalEndTime && contestStart && contestDuration) {
+    if (!finalEndTime && contestStart && contestDuration && contestDuration !== 'custom') {
       const start = new Date(contestStart);
-      start.setHours(start.getHours() + parseInt(contestDuration));
-      finalEndTime = start.toISOString().slice(0, 16);
+      if (!isNaN(start.getTime())) {
+        start.setHours(start.getHours() + parseInt(contestDuration));
+        finalEndTime = start.toISOString().slice(0, 16);
+      }
     }
 
     const newContest = {

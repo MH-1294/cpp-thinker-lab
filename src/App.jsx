@@ -106,6 +106,29 @@ function App() {
   // --- CONTEST TRANSITION STATE ---
   const [selectedContest, setSelectedContest] = useState(null);
   const [contestProblem, setContestProblem] = useState(null);
+  // --- ROUTING LOGIC ---
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '') || 'home';
+      if (hash !== currentView) setCurrentView(hash);
+    };
+
+    // Initialize from hash
+    const initialHash = window.location.hash.replace('#', '');
+    if (initialHash && initialHash !== currentView) {
+      setCurrentView(initialHash);
+    }
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    if (window.location.hash.replace('#', '') !== currentView) {
+      window.location.hash = currentView;
+    }
+  }, [currentView]);
+
   const [userId, setUserId] = useState(() => localStorage.getItem('cs110_uid') || 'guest-' + Date.now());
 
   useEffect(() => {
