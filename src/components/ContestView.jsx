@@ -9,6 +9,7 @@ export default function ContestView({ contest, onBack, onSolve, userId }) {
   const [solvedIds, setSolvedIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('problems'); // 'problems' or 'leaderboard'
+  const [teamName, setTeamName] = useState(() => localStorage.getItem(`team_${contest?.firestoreId}`) || '');
 
   useEffect(() => {
     const fetchContestData = async () => {
@@ -84,6 +85,27 @@ export default function ContestView({ contest, onBack, onSolve, userId }) {
           </div>
         </div>
 
+        {contest.type === 'group' && (
+          <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(56, 189, 248, 0.05)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.25rem' }}>Team Participation</label>
+              <input 
+                type="text" 
+                placeholder="Enter Team Name (e.g. Code Ninjas)" 
+                value={teamName}
+                onChange={(e) => {
+                  setTeamName(e.target.value);
+                  localStorage.setItem(`team_${contest.firestoreId}`, e.target.value);
+                }}
+                style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '0.5rem 0.75rem', borderRadius: '6px' }}
+              />
+            </div>
+            <div style={{ fontSize: '0.85rem', color: '#cbd5e1', maxWidth: '200px' }}>
+              Friends can join your team by using the <strong>same team name</strong>.
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           <button 
             onClick={() => setActiveTab('problems')}
@@ -133,7 +155,13 @@ export default function ContestView({ contest, onBack, onSolve, userId }) {
                 </div>
                 <button 
                   disabled={!isOngoing && !hasEnded}
-                  onClick={() => onSolve(problem, contest.firestoreId)}
+                  onClick={() => {
+                    if (contest.type === 'group' && !teamName.trim()) {
+                      alert("Please enter a Team Name to join this group contest!");
+                      return;
+                    }
+                    onSolve(problem, contest.firestoreId, teamName);
+                  }}
                   className={`btn ${isSolved ? 'btn-secondary' : ''}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem' }}
                 >
@@ -144,7 +172,7 @@ export default function ContestView({ contest, onBack, onSolve, userId }) {
           })}
         </div>
       ) : (
-        <ContestLeaderboard contestId={contest.firestoreId} />
+        <ContestLeaderboard contestId={contest.firestoreId} contestType={contest.type} />
       )}
     </div>
   );

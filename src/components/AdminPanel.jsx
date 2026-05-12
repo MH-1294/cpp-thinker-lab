@@ -327,7 +327,8 @@ export default function AdminPanel({ onPreview }) {
 
   const handleContestSubmit = async (e) => {
     e.preventDefault();
-    if (!contestTitle || !contestStart || !contestEnd || selectedProbIds.length === 0) {
+    const isTimeValid = contestEnd || (contestStart && contestDuration && contestDuration !== 'custom');
+    if (!contestTitle || !contestStart || !isTimeValid || selectedProbIds.length === 0) {
       alert('Please fill in Title, Start/End time, and select at least one problem!');
       return;
     }

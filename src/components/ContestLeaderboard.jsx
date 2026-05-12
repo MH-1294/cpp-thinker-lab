@@ -3,7 +3,7 @@ import { Trophy, Clock, Medal, Loader } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 
-export default function ContestLeaderboard({ contestId }) {
+export default function ContestLeaderboard({ contestId, contestType }) {
   const [standings, setStandings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,27 +21,29 @@ export default function ContestLeaderboard({ contestId }) {
         );
         const snap = await getDocs(q);
         
-        // Group by user
-        const userMap = {};
+        const groupKey = contestType === 'group' ? 'teamName' : 'userId';
+        const standingsMap = {};
+        
         snap.docs.forEach(d => {
           const data = d.data();
-          if (!userMap[data.userId]) {
-            userMap[data.userId] = {
-              name: data.userName,
+          const key = data[groupKey] || (contestType === 'group' ? 'No Team' : data.userId);
+          
+          if (!standingsMap[key]) {
+            standingsMap[key] = {
+              name: contestType === 'group' ? key : data.userName,
               solvedCount: 0,
-              totalTime: 0,
               lastSolveTime: 0
             };
           }
-          userMap[data.userId].solvedCount += 1;
+          standingsMap[key].solvedCount += 1;
           // In a real contest, time might be measured from contest start. 
           // Here we'll just track how many they solved.
-          if (data.timestamp > userMap[data.userId].lastSolveTime) {
-            userMap[data.userId].lastSolveTime = data.timestamp;
+          if (data.timestamp > standingsMap[key].lastSolveTime) {
+            standingsMap[key].lastSolveTime = data.timestamp;
           }
         });
 
-        const results = Object.values(userMap).sort((a, b) => {
+        const results = Object.values(standingsMap).sort((a, b) => {
           if (b.solvedCount !== a.solvedCount) return b.solvedCount - a.solvedCount;
           return a.lastSolveTime - b.lastSolveTime; // Penalty for later solves
         });
@@ -75,7 +77,7 @@ export default function ContestLeaderboard({ contestId }) {
         <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
           <div style={{ padding: '1rem 1.5rem', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'grid', gridTemplateColumns: '50px 1fr 100px 100px', fontWeight: 'bold', fontSize: '0.85rem', color: '#94a3b8' }}>
             <span>Rank</span>
-            <span>Competitor</span>
+            <span>{contestType === 'group' ? 'Team Name' : 'Competitor'}</span>
             <span style={{ textAlign: 'center' }}>Solved</span>
             <span style={{ textAlign: 'right' }}>Score</span>
           </div>

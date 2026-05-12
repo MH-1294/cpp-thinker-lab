@@ -61,6 +61,7 @@ export default function Playground({ contestContext }) {
           problemId: contestContext.problemId,
           userId: contestContext.userId,
           userName: contestContext.userName || 'Anonymous Student',
+          teamName: contestContext.teamName || '',
           code: code,
           status: 'solved', // In a real system we'd verify output
           timestamp: Date.now()

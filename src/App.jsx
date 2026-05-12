@@ -269,8 +269,8 @@ function App() {
           contest={selectedContest} 
           userId={userId}
           onBack={() => setCurrentView('contests')}
-          onSolve={(problem, contestId) => {
-            setContestProblem({ problemId: problem.firestoreId, contestId, userId, userName });
+          onSolve={(problem, contestId, teamName) => {
+            setContestProblem({ problemId: problem.firestoreId, contestId, userId, userName, teamName });
             setCurrentView('playground');
           }}
         />
