@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlayCircle, Lock, CheckCircle, Clock } from 'lucide-react';
+import { PlayCircle, Lock, CheckCircle, Clock, Settings } from 'lucide-react';
 
 const DEFAULT_LESSONS = [
   { id: 1, title: "1. Introduction to C++", duration: "12:45", completed: true, locked: false },
@@ -44,7 +44,7 @@ export default function Course({ isAuthenticated, onRequireAuth }) {
     setTimeout(() => {
       setHasPurchased(true);
       localStorage.setItem('cs110_course_unlocked', 'true');
-      alert("Payment Successful! Premium Course Unlocked.");
+      alert("Payment Successful! Course Unlocked.");
     }, 1000);
   };
 
@@ -89,6 +89,20 @@ export default function Course({ isAuthenticated, onRequireAuth }) {
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      
+      {/* UNDER CONSTRUCTION MESSAGE */}
+      <div className="glass-panel mb-6" style={{ background: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.3)', display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1.5rem' }}>
+        <div style={{ background: '#fbbf24', color: '#0f172a', padding: '0.75rem', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Settings size={28} className="animate-spin-slow" />
+        </div>
+        <div>
+          <h3 style={{ color: '#fbbf24', fontSize: '1.2rem', margin: 0, fontWeight: 'bold' }}>Section Under Construction</h3>
+          <p style={{ color: '#cbd5e1', fontSize: '0.95rem', margin: '0.25rem 0 0 0' }}>
+            We are currently building this course to provide the best learning experience. Some modules might be placeholders. Stay tuned for more updates!
+          </p>
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '1.5rem', alignItems: 'start' }}>
         
         {/* Video Player Area */}

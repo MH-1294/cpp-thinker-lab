@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { Play, Code, TerminalSquare } from 'lucide-react';
+import { Play, Code, TerminalSquare, Send, CheckCircle } from 'lucide-react';
+import { db } from '../firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
-export default function Playground() {
+export default function Playground({ contestContext }) {
   const [code, setCode] = useState('#include <iostream>\nusing namespace std;\n\nint main() {\n    int A, B;\n    // Type your code here\n    cin >> A >> B;\n    cout << "X = " << A + B << endl;\n    return 0;\n}');
   const [inputData, setInputData] = useState('10\n9');
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleRun = async () => {
     setIsRunning(true);
@@ -44,6 +48,31 @@ export default function Playground() {
     } finally {
       setIsRunning(false);
     }
+  };
+
+  const handleSubmit = async () => {
+    if (!contestContext || isSubmitting) return;
+    setIsSubmitting(true);
+    
+    try {
+      if (db) {
+        await addDoc(collection(db, 'contest_submissions'), {
+          contestId: contestContext.contestId,
+          problemId: contestContext.problemId,
+          userId: contestContext.userId,
+          userName: contestContext.userName || 'Anonymous Student',
+          code: code,
+          status: 'solved', // In a real system we'd verify output
+          timestamp: Date.now()
+        });
+        setIsSubmitted(true);
+        setTimeout(() => setIsSubmitted(false), 3000);
+      }
+    } catch (e) {
+      console.error("Error submitting solution:", e);
+      alert("Failed to submit solution. Please check your connection.");
+    }
+    setIsSubmitting(false);
   };
 
   return (
@@ -95,10 +124,20 @@ export default function Playground() {
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button className="btn" onClick={handleRun} disabled={isRunning} style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '1rem', fontSize: '1.1rem' }}>
-              <Play size={20} /> {isRunning ? 'Compiling...' : 'Run Code'}
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button className="btn btn-secondary" onClick={handleRun} disabled={isRunning} style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '0.75rem' }}>
+              <Play size={18} /> {isRunning ? 'Running...' : 'Run Code'}
             </button>
+            {contestContext && (
+              <button 
+                className="btn" 
+                onClick={handleSubmit} 
+                disabled={isSubmitting || isSubmitted} 
+                style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', background: isSubmitted ? 'var(--success-color)' : 'var(--accent-color)' }}
+              >
+                {isSubmitted ? <><CheckCircle size={18} /> Submitted!</> : <><Send size={18} /> Submit Solution</>}
+              </button>
+            )}
           </div>
 
           {/* Terminal Output */}

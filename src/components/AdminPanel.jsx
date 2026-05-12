@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, Settings, Upload, Bot, Copy, FileCode2, HelpCircle, Video, Users, PlayCircle, Edit, Eye, EyeOff, Loader } from 'lucide-react';
+import { PlusCircle, Trash2, Settings, Upload, Bot, Copy, FileCode2, HelpCircle, Video, Users, PlayCircle, Edit, Eye, EyeOff, Loader, Trophy, Calendar } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, orderBy, query } from 'firebase/firestore';
 import { problems as staticProblems } from '../data/problems';
@@ -54,6 +54,17 @@ export default function AdminPanel({ onPreview }) {
   const [staffRole, setStaffRole] = useState('quiz_manager');
   const [staffList, setStaffList] = useState([]);
   const [isStaffSaved, setIsStaffSaved] = useState(false);
+  
+  // --- CONTEST STATE ---
+  const [contestTitle, setContestTitle] = useState('');
+  const [contestDesc, setContestDesc] = useState('');
+  const [contestStart, setContestStart] = useState('');
+  const [contestEnd, setContestEnd] = useState('');
+  const [contestType, setContestType] = useState('individual');
+  const [selectedProbIds, setSelectedProbIds] = useState([]);
+  const [firestoreContests, setFirestoreContests] = useState([]);
+  const [isContestSaved, setIsContestSaved] = useState(false);
+  const [contestLoading, setContestLoading] = useState(false);
 
   // --- LIFECYCLE ---
   useEffect(() => {
@@ -82,6 +93,8 @@ export default function AdminPanel({ onPreview }) {
 
     const savedS = localStorage.getItem('cs110_staff');
     if (savedS) setStaffList(JSON.parse(savedS));
+
+    fetchFirestoreContests();
   }, []);
 
   // --- QUIZ HANDLERS ---
@@ -299,6 +312,56 @@ export default function AdminPanel({ onPreview }) {
     }
   };
 
+  // --- CONTEST HANDLERS ---
+  const fetchFirestoreContests = async () => {
+    if (!db) return;
+    setContestLoading(true);
+    try {
+      const q = query(collection(db, 'contests'), orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      setFirestoreContests(snap.docs.map(d => ({ firestoreId: d.id, ...d.data() })));
+    } catch (e) { console.error(e); }
+    setContestLoading(false);
+  };
+
+  const handleContestSubmit = async (e) => {
+    e.preventDefault();
+    if (!contestTitle || !contestStart || !contestEnd || selectedProbIds.length === 0) {
+      alert('Please fill in Title, Start/End time, and select at least one problem!');
+      return;
+    }
+    const newContest = {
+      title: contestTitle,
+      description: contestDesc,
+      startTime: contestStart,
+      endTime: contestEnd,
+      type: contestType,
+      problemIds: selectedProbIds,
+      createdAt: Date.now(),
+      status: 'active'
+    };
+    if (db) {
+      await addDoc(collection(db, 'contests'), newContest);
+      await fetchFirestoreContests();
+    }
+    setContestTitle(''); setContestDesc(''); setContestStart(''); setContestEnd(''); setSelectedProbIds([]);
+    setIsContestSaved(true); setTimeout(() => setIsContestSaved(false), 3000);
+  };
+
+  const handleContestDelete = async (id) => {
+    if (!window.confirm('Delete this contest?')) return;
+    if (db) {
+      await deleteDoc(doc(db, 'contests', id));
+      setFirestoreContests(prev => prev.filter(c => c.firestoreId !== id));
+    }
+  };
+
+  const toggleProblemSelection = (id) => {
+    setSelectedProbIds(prev => 
+      prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
+    );
+  };
+
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -312,6 +375,9 @@ export default function AdminPanel({ onPreview }) {
           </button>
           <button className={`btn ${activeTab === 'problems' ? '' : 'btn-secondary'}`} onClick={() => setActiveTab('problems')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: activeTab === 'problems' ? 'var(--accent-color)' : 'rgba(255,255,255,0.05)' }}>
             <FileCode2 size={18} /> Manage Problems
+          </button>
+          <button className={`btn ${activeTab === 'contests' ? '' : 'btn-secondary'}`} onClick={() => setActiveTab('contests')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: activeTab === 'contests' ? 'var(--accent-color)' : 'rgba(255,255,255,0.05)' }}>
+            <Trophy size={18} /> Manage Contests
           </button>
           {userRole === 'superadmin' && (
             <>
@@ -604,6 +670,82 @@ export default function AdminPanel({ onPreview }) {
                 ))}
               </div>
             )}
+        </div>
+      )}
+
+      {activeTab === 'contests' && (
+        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
+            <div className="glass-panel">
+              <h3 className="mb-4" style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><PlusCircle size={20} /> Create New Contest</h3>
+              <form onSubmit={handleContestSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <input type="text" placeholder="Contest Title" value={contestTitle} onChange={(e) => setContestTitle(e.target.value)} style={{ padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                <textarea placeholder="Description (Optional)..." value={contestDesc} onChange={(e) => setContestDesc(e.target.value)} style={{ padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} rows="2" />
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>Start Time</label>
+                    <input type="datetime-local" value={contestStart} onChange={(e) => setContestStart(e.target.value)} style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>End Time</label>
+                    <input type="datetime-local" value={contestEnd} onChange={(e) => setContestEnd(e.target.value)} style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>Participation Type</label>
+                  <select value={contestType} onChange={(e) => setContestType(e.target.value)} style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <option value="individual">Individual Participation</option>
+                    <option value="group">Group Competition</option>
+                  </select>
+                </div>
+
+                <div style={{ marginTop: '0.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'white' }}>Select Problems ({selectedProbIds.length})</label>
+                  <div style={{ maxHeight: '200px', overflowY: 'auto', background: 'rgba(0,0,0,0.2)', padding: '0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    {firestoreProblems.length === 0 ? (
+                      <p style={{ fontSize: '0.85rem', color: '#94a3b8', padding: '1rem' }}>No problems available. Add problems first!</p>
+                    ) : (
+                      firestoreProblems.map(p => (
+                        <div key={p.firestoreId} onClick={() => toggleProblemSelection(p.firestoreId)} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px', background: selectedProbIds.includes(p.firestoreId) ? 'rgba(56,189,248,0.1)' : 'transparent' }}>
+                          <input type="checkbox" checked={selectedProbIds.includes(p.firestoreId)} readOnly style={{ cursor: 'pointer' }} />
+                          <span style={{ fontSize: '0.85rem', color: selectedProbIds.includes(p.firestoreId) ? '#38bdf8' : 'white' }}>{p.title}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <button type="submit" className="btn" style={{ background: isContestSaved ? 'var(--success-color)' : 'var(--accent-color)', color: '#0f172a', fontWeight: 'bold', marginTop: '0.5rem' }}>
+                  {isContestSaved ? '✓ Contest Created!' : 'Create Contest'}
+                </button>
+              </form>
+            </div>
+
+            <div className="glass-panel">
+              <h3 className="mb-4" style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Trophy size={20} /> Existing Contests ({firestoreContests.length})</h3>
+              {contestLoading ? (
+                <div style={{ textAlign: 'center', padding: '2rem' }}><Loader size={24} className="animate-spin" /></div>
+              ) : firestoreContests.length === 0 ? (
+                <p style={{ color: '#94a3b8', fontStyle: 'italic', textAlign: 'center', padding: '2rem' }}>No contests created yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {firestoreContests.map(c => (
+                    <div key={c.firestoreId} style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ flex: 1 }}>
+                        <strong style={{ color: 'var(--accent-color)', fontSize: '1rem' }}>{c.title}</strong>
+                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={12} /> {new Date(c.startTime).toLocaleDateString()}</span>
+                          <span>{c.problemIds?.length || 0} Problems</span>
+                        </div>
+                      </div>
+                      <button onClick={() => handleContestDelete(c.firestoreId)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.5rem' }}><Trash2 size={18} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

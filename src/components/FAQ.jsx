@@ -7,8 +7,8 @@ const FAQ_DATA = [
     answer: "Not at all! This course is designed from the ground up for absolute beginners. We start with the absolute basics of what a program is, and slowly build up to advanced C++ concepts."
   },
   {
-    question: "How long do I have access to the Premium Course?",
-    answer: "Once you purchase the Premium Course for a one-time fee of $19 CAD, you receive lifelong access. There are no recurring subscription fees, and you will automatically get access to any new modules or updates we add in the future."
+    question: "How long do I have access to the Course?",
+    answer: "Once you purchase the Course for a one-time fee of $19 CAD, you receive lifelong access. There are no recurring subscription fees, and you will automatically get access to any new modules or updates we add in the future."
   },
   {
     question: "Can I take the Assessment without buying the course?",
@@ -16,7 +16,7 @@ const FAQ_DATA = [
   },
   {
     question: "Will I get a certificate when I finish?",
-    answer: "Yes. Upon completing all modules in the Premium Course and passing the final Assessment, you will be awarded a digital Certificate of Completion."
+    answer: "Yes. Upon completing all modules in the Course and passing the final Assessment, you will be awarded a digital Certificate of Completion."
   },
   {
     question: "What software do I need installed?",

@@ -22,6 +22,8 @@ import Profile from './components/Profile'
 import FAQ from './components/FAQ'
 import Tutoring from './components/Tutoring'
 import Legal from './components/Legal'
+import Contests from './components/Contests'
+import ContestView from './components/ContestView'
 
 // ─── Accessible Dropdown Component ────────────────────────────────────────────
 function NavDropdown({ id, label, isActive, align = 'center', openDropdown, setOpenDropdown, dropdownRef, children }) {
@@ -101,6 +103,17 @@ function App() {
     user:      useRef(null),
   };
 
+  // --- CONTEST TRANSITION STATE ---
+  const [selectedContest, setSelectedContest] = useState(null);
+  const [contestProblem, setContestProblem] = useState(null);
+  const [userId, setUserId] = useState(() => localStorage.getItem('cs110_uid') || 'guest-' + Date.now());
+
+  useEffect(() => {
+    if (!localStorage.getItem('cs110_uid')) {
+      localStorage.setItem('cs110_uid', userId);
+    }
+  }, [userId]);
+
   // Scroll to top whenever the view changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -126,6 +139,7 @@ function App() {
         setUserName(user.displayName || user.email?.split('@')[0] || 'Student');
         const savedRole = localStorage.getItem('cs110_role') || 'student';
         setUserRole(savedRole);
+        setUserId(user.uid);
       } else {
         // Fallback check for mock login
         const token = localStorage.getItem('cs110_auth_token');
@@ -203,7 +217,7 @@ function App() {
       case 'guide': return <NewcomerGuide />;
       case 'quiz': return <Quiz isAuthenticated={isAuthenticated} onRequireAuth={() => setCurrentView('login')} />;
       case 'course': return <Course isAuthenticated={isAuthenticated} onRequireAuth={() => setCurrentView('login')} />;
-      case 'playground': return <Playground />;
+      case 'playground': return <Playground contestContext={contestProblem} />;
       case 'problems': return <ProblemSet onSolve={() => setCurrentView('playground')} userRole={userRole} />;
       case 'cheatsheet': return <CheatSheet />;
       case 'flashcards': return <Flashcards />;
@@ -219,6 +233,25 @@ function App() {
       case 'legal':         return <Legal defaultTab="copyright" />;
       case 'legal-privacy': return <Legal defaultTab="privacy" />;
       case 'legal-credits': return <Legal defaultTab="credits" />;
+      case 'contests': return (
+        <Contests 
+          onViewContest={(contest) => {
+            setSelectedContest(contest);
+            setCurrentView('contest-view');
+          }} 
+        />
+      );
+      case 'contest-view': return (
+        <ContestView 
+          contest={selectedContest} 
+          userId={userId}
+          onBack={() => setCurrentView('contests')}
+          onSolve={(problem, contestId) => {
+            setContestProblem({ problemId: problem.firestoreId, contestId, userId, userName });
+            setCurrentView('playground');
+          }}
+        />
+      );
       default: return <Hero onStartGuide={() => setCurrentView('guide')} onStartQuiz={() => setCurrentView('quiz')} />;
     }
   };
@@ -234,13 +267,14 @@ function App() {
       <div id="mobile-nav-drawer" className={`mobile-nav-drawer ${mobileNavOpen ? 'open' : ''}`} role="dialog" aria-label="Navigation menu" aria-modal="true">
         <div className="mobile-nav-section">Learn</div>
         <button onClick={() => { setCurrentView('guide'); setMobileNavOpen(false); }}>📖 Guide (Start Here)</button>
-        <button onClick={() => { setCurrentView('course'); setMobileNavOpen(false); }} style={{ color: '#fbbf24' }}>★ Premium Course</button>
+        <button onClick={() => { setCurrentView('course'); setMobileNavOpen(false); }} style={{ color: '#fbbf24' }}>★ Course</button>
         <button onClick={() => { setCurrentView('cheatsheet'); setMobileNavOpen(false); }}>Cheat Sheet</button>
         <button onClick={() => { setCurrentView('mistakes'); setMobileNavOpen(false); }}>Common Mistakes</button>
         <button onClick={() => { setCurrentView('faq'); setMobileNavOpen(false); }}>FAQ</button>
 
         <div className="mobile-nav-section">Practice</div>
         <button onClick={() => { setCurrentView('quiz'); setMobileNavOpen(false); }}>Assessment</button>
+        <button onClick={() => { setCurrentView('contests'); setMobileNavOpen(false); }} style={{ color: 'var(--accent-color)' }}>🏆 Contests</button>
         <button onClick={() => { setCurrentView('problems'); setMobileNavOpen(false); }}>Problem Set</button>
         <button onClick={() => { setCurrentView('playground'); setMobileNavOpen(false); }}>Playground</button>
         <button onClick={() => { setCurrentView('flashcards'); setMobileNavOpen(false); }}>Flashcards</button>
@@ -304,12 +338,13 @@ function App() {
           <NavDropdown
             id="practice"
             label="Practice ▾"
-            isActive={['quiz','problems','playground','flashcards','notes'].includes(currentView)}
+            isActive={['quiz','problems','playground','flashcards','notes','contests','contest-view'].includes(currentView)}
             openDropdown={openDropdown}
             setOpenDropdown={setOpenDropdown}
             dropdownRef={dropdownRefs.practice}
           >
             <button role="menuitem" onClick={() => { setCurrentView('quiz');        setOpenDropdown(null); }}>Assessment</button>
+            <button role="menuitem" onClick={() => { setCurrentView('contests');    setOpenDropdown(null); }} style={{ color: 'var(--accent-color)', fontWeight: 'bold' }}>🏆 Contests</button>
             <button role="menuitem" onClick={() => { setCurrentView('problems');    setOpenDropdown(null); }}>Problem Set</button>
             <button role="menuitem" onClick={() => { setCurrentView('playground');  setOpenDropdown(null); }}>Playground</button>
             <button role="menuitem" onClick={() => { setCurrentView('flashcards');  setOpenDropdown(null); }}>Flashcards</button>
@@ -337,7 +372,7 @@ function App() {
             onClick={() => setCurrentView('course')}
             aria-current={currentView === 'course' ? 'page' : undefined}
           >
-            ★ Premium Course
+            ★ Course
           </button>
         </div>
 
@@ -435,13 +470,14 @@ function App() {
             <button onClick={() => setCurrentView('cheatsheet')}>Cheat Sheet</button>
             <button onClick={() => setCurrentView('mistakes')}>Common Mistakes</button>
             <button onClick={() => setCurrentView('faq')}>FAQ</button>
-            <button onClick={() => setCurrentView('course')} className="footer-premium">★ Premium Course</button>
+            <button onClick={() => setCurrentView('course')} className="footer-premium">★ Course</button>
           </nav>
 
           {/* Practice column */}
           <nav className="footer-col" aria-label="Practice section links">
             <h3>Practice</h3>
             <button onClick={() => setCurrentView('quiz')}>Assessment</button>
+            <button onClick={() => setCurrentView('contests')}>Contests</button>
             <button onClick={() => setCurrentView('problems')}>Problem Set</button>
             <button onClick={() => setCurrentView('playground')}>Playground</button>
             <button onClick={() => setCurrentView('flashcards')}>Flashcards</button>

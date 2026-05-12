@@ -114,7 +114,7 @@ export default function Profile({ onUpdateName }) {
           {/* COURSE UPSELL OR PROGRESS */}
           {hasPurchased ? (
             <div className="glass-panel" style={{ border: '1px solid var(--success-color)' }}>
-              <h3 style={{ fontSize: '1rem', color: 'var(--success-color)', marginBottom: '1rem' }}>Premium Course</h3>
+              <h3 style={{ fontSize: '1rem', color: 'var(--success-color)', marginBottom: '1rem' }}>C++ Course</h3>
               <p style={{ fontSize: '0.9rem', color: '#cbd5e1', marginBottom: '1rem' }}>You have lifelong access to the full C++ curriculum.</p>
               <div style={{ background: 'rgba(255,255,255,0.1)', height: '8px', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
                 <div style={{ width: '25%', height: '100%', background: 'var(--success-color)' }}></div>
@@ -127,11 +127,11 @@ export default function Profile({ onUpdateName }) {
           ) : (
             <div className="glass-panel" style={{ background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(15, 23, 42, 0.8))', border: '1px solid var(--accent-color)', textAlign: 'center' }}>
               <Award size={32} color="var(--accent-color)" style={{ margin: '0 auto 1rem auto' }} />
-              <h3 style={{ fontSize: '1.2rem', color: 'white', marginBottom: '0.5rem' }}>Unlock Premium</h3>
+              <h3 style={{ fontSize: '1.2rem', color: 'white', marginBottom: '0.5rem' }}>Full Course</h3>
               <p style={{ fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '1rem' }}>Get lifelong access to 40+ hours of video tutorials.</p>
               <button 
                 onClick={() => {
-                  alert("Please navigate to the ★ Premium Course tab to purchase.");
+                  alert("Please navigate to the ★ Course tab to purchase.");
                 }} 
                 className="btn" 
                 style={{ width: '100%', fontSize: '0.9rem', padding: '0.5rem' }}
