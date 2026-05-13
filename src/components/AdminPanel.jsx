@@ -838,6 +838,7 @@ export default function AdminPanel({ onPreview }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {firestoreContests.map(c => (
                     <div key={c.firestoreId} style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ flex: 1 }}>
                         <strong style={{ color: 'white' }}>{c.title}</strong>
                         <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.25rem' }}>{new Date(c.startTime).toLocaleString()} - {c.type}</div>
                       </div>
