@@ -10,6 +10,7 @@ export default function ContestView({ contest, onBack, onSolve, userId }) {
   const [loading, setLoading] = useState(true);
   const [teamName, setTeamName] = useState(() => localStorage.getItem(`team_${contest?.firestoreId}`) || '');
   const [teamMembersCount, setTeamMembersCount] = useState(0);
+  const [activeTab, setActiveTab] = useState('problems');
 
   useEffect(() => {
     if (contest.type === 'group' && teamName.trim()) {

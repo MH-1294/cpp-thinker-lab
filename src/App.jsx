@@ -24,6 +24,8 @@ import Tutoring from './components/Tutoring'
 import Legal from './components/Legal'
 import Contests from './components/Contests'
 import ContestView from './components/ContestView'
+import NotFound from './components/NotFound'
+import ErrorBoundary from './components/ErrorBoundary'
 
 // ─── Accessible Dropdown Component ────────────────────────────────────────────
 function NavDropdown({ id, label, isActive, align = 'center', openDropdown, setOpenDropdown, dropdownRef, children }) {
@@ -303,18 +305,23 @@ function App() {
           }} 
         />
       );
-      case 'contest-view': return (
-        <ContestView 
-          contest={selectedContest} 
-          userId={userId}
-          onBack={() => setCurrentView('contests')}
-          onSolve={(problem, contestId, teamName) => {
-            setContestProblem({ problemId: problem.firestoreId, contestId, userId, userName, teamName });
-            setCurrentView('playground');
-          }}
-        />
-      );
-      default: return <Hero onStartGuide={() => setCurrentView('guide')} onStartQuiz={() => setCurrentView('quiz')} />;
+      case 'contest-view': 
+        if (!selectedContest) {
+          setTimeout(() => setCurrentView('contests'), 0);
+          return null;
+        }
+        return (
+          <ContestView 
+            contest={selectedContest} 
+            userId={userId}
+            onBack={() => setCurrentView('contests')}
+            onSolve={(problem, contestId, teamName) => {
+              setContestProblem({ problemId: problem.firestoreId, problemDetails: problem, contestId, userId, userName, teamName });
+              setCurrentView('playground');
+            }}
+          />
+        );
+      default: return <NotFound onGoHome={() => setCurrentView('home')} />;
     }
   };
 
@@ -509,7 +516,9 @@ function App() {
             <button className="dismiss" onClick={() => { setShowBanner(false); localStorage.setItem('cs110_banner_dismissed', '1'); }}>Got it ✕</button>
           </div>
         )}
-        {renderView()}
+        <ErrorBoundary>
+          {renderView()}
+        </ErrorBoundary>
       </main>
 
       <footer className="site-footer" aria-label="Site footer">
@@ -576,7 +585,7 @@ function App() {
             <span aria-hidden="true">·</span>
             <button onClick={() => setCurrentView('legal-credits')} style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}>Credits</button>
             <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '1rem' }}>
-              Build ID: 2026.05.13 | Auth Fix
+              Build ID: 2026.05.13 | 404 & Playground
             </div>
           </div>
         </div>
