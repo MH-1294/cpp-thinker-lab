@@ -8,8 +8,22 @@ export default function ContestView({ contest, onBack, onSolve, userId }) {
   const [problems, setProblems] = useState([]);
   const [solvedIds, setSolvedIds] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('problems'); // 'problems' or 'leaderboard'
   const [teamName, setTeamName] = useState(() => localStorage.getItem(`team_${contest?.firestoreId}`) || '');
+  const [teamMembersCount, setTeamMembersCount] = useState(0);
+
+  useEffect(() => {
+    if (contest.type === 'group' && teamName.trim()) {
+      const fetchTeamSize = async () => {
+        try {
+          const q = query(collection(db, 'contest_submissions'), where('contestId', '==', contest.firestoreId), where('teamName', '==', teamName.trim()));
+          const snap = await getDocs(q);
+          const uniqueUsers = new Set(snap.docs.map(d => d.data().userId));
+          setTeamMembersCount(uniqueUsers.size);
+        } catch (e) { console.error(e); }
+      };
+      fetchTeamSize();
+    }
+  }, [teamName, contest]);
 
   useEffect(() => {
     const fetchContestData = async () => {
@@ -101,7 +115,8 @@ export default function ContestView({ contest, onBack, onSolve, userId }) {
               />
             </div>
             <div style={{ fontSize: '0.85rem', color: '#cbd5e1', maxWidth: '200px' }}>
-              Friends can join your team by using the <strong>same team name</strong>.
+              Friends can join your team by using the <strong>same team name</strong>. 
+              {contest.maxTeamSize && <div style={{ marginTop: '0.25rem', color: teamMembersCount >= contest.maxTeamSize ? '#f87171' : 'var(--success-color)' }}>Limit: {teamMembersCount}/{contest.maxTeamSize} members</div>}
             </div>
           </div>
         )}
@@ -158,6 +173,11 @@ export default function ContestView({ contest, onBack, onSolve, userId }) {
                   onClick={() => {
                     if (contest.type === 'group' && !teamName.trim()) {
                       alert("Please enter a Team Name to join this group contest!");
+                      return;
+                    }
+                    if (contest.type === 'group' && contest.maxTeamSize && teamMembersCount >= contest.maxTeamSize && !solvedIds.length) {
+                      // Only block if they haven't already solved anything (meaning they are trying to join a full team)
+                      alert(`This team is full! Max ${contest.maxTeamSize} members allowed.`);
                       return;
                     }
                     onSolve(problem, contest.firestoreId, teamName);

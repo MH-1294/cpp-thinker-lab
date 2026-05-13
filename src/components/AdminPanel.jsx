@@ -62,6 +62,7 @@ export default function AdminPanel({ onPreview }) {
   const [contestDuration, setContestDuration] = useState('2'); // hours
   const [contestEnd, setContestEnd] = useState('');
   const [contestType, setContestType] = useState('individual');
+  const [maxTeamSize, setMaxTeamSize] = useState('3');
   const [selectedProbIds, setSelectedProbIds] = useState([]);
   const [firestoreContests, setFirestoreContests] = useState([]);
   const [isContestSaved, setIsContestSaved] = useState(false);
@@ -347,6 +348,7 @@ export default function AdminPanel({ onPreview }) {
       startTime: contestStart,
       endTime: finalEndTime,
       type: contestType,
+      maxTeamSize: contestType === 'group' ? parseInt(maxTeamSize) : 1,
       problemIds: selectedProbIds,
       createdAt: Date.now(),
       status: 'active'
@@ -740,12 +742,27 @@ export default function AdminPanel({ onPreview }) {
                   </div>
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>Participation Type</label>
-                  <select value={contestType} onChange={(e) => setContestType(e.target.value)} style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <option value="individual">Individual Participation</option>
-                    <option value="group">Group Competition</option>
-                  </select>
+                <div style={{ display: 'grid', gridTemplateColumns: contestType === 'group' ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>Participation Type</label>
+                    <select value={contestType} onChange={(e) => setContestType(e.target.value)} style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <option value="individual">Individual Participation</option>
+                      <option value="group">Group Competition</option>
+                    </select>
+                  </div>
+                  {contestType === 'group' && (
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>Max Team Size</label>
+                      <input 
+                        type="number" 
+                        min="2" 
+                        max="20" 
+                        value={maxTeamSize} 
+                        onChange={(e) => setMaxTeamSize(e.target.value)} 
+                        style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', color: 'white', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} 
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ marginTop: '0.5rem' }}>
