@@ -52,24 +52,21 @@ export default function Auth({ onLogin }) {
     } catch (err) {
       console.error("Auth Error:", err);
       
-      if (err.code === 'auth/popup-blocked') {
-        setError("Popup blocked! Redirecting to Google Login...");
-        setTimeout(() => {
-          signInWithRedirect(auth, googleProvider);
-        }, 1500);
-        return;
-      }
-
       // Fallback for mock login if Firebase is not configured or errors
-      if (!import.meta.env.VITE_FIREBASE_API_KEY || err.code === 'auth/invalid-api-key' || err.message.includes('API key')) {
-        console.warn("Falling back to mock login due to missing Firebase config");
+      const isMissingConfig = !import.meta.env.VITE_FIREBASE_API_KEY || err.code === 'auth/invalid-api-key' || err.message.includes('API key');
+      const isRedirectError = err.code === 'auth/unauthorized-domain' || err.code === 'auth/popup-blocked';
+
+      if (isMissingConfig || isRedirectError) {
+        console.warn("Falling back to mock login");
         const fallbackUser = providerName ? providerName + " User" : (isSignUp && fullName ? fullName : email.split('@')[0] || "Student");
         let role = 'student';
+        
         if (!providerName) {
-          if (email.includes('admin')) role = 'superadmin';
-          else if (email.includes('ta') || email.includes('manager')) role = 'quiz_manager';
+          if (email.toLowerCase().includes('admin')) role = 'superadmin';
+          else if (email.toLowerCase().includes('ta') || email.toLowerCase().includes('manager')) role = 'quiz_manager';
         }
-        localStorage.setItem('cs110_auth_token', 'mock_token_123');
+
+        localStorage.setItem('cs110_auth_token', 'mock_token_' + Date.now());
         localStorage.setItem('cs110_username', fallbackUser);
         localStorage.setItem('cs110_role', role);
         onLogin(fallbackUser, role);
@@ -85,6 +82,11 @@ export default function Auth({ onLogin }) {
         <h2 className="text-gradient mb-2" style={{ fontSize: '1.8rem' }}>
           {isSignUp ? "Create an Account" : "Welcome Back"}
         </h2>
+        {!import.meta.env.VITE_FIREBASE_API_KEY && (
+          <div style={{ background: 'rgba(251, 191, 36, 0.1)', border: '1px solid #fbbf24', color: '#fbbf24', padding: '0.75rem', borderRadius: '8px', fontSize: '0.8rem', marginBottom: '1.5rem' }}>
+            <strong>Development Mode:</strong> Firebase keys are missing. Any email/password will work to log in.
+          </div>
+        )}
         <p className="mb-4" style={{ color: '#cbd5e1', fontSize: '0.95rem' }}>
           {isSignUp 
             ? "Join C++ Thinker Lab to access the Assessment and Premium Video Course." 

@@ -145,7 +145,19 @@ function App() {
 
   // --- AUTH SYNC ---
   useEffect(() => {
-    if (!auth) return;
+    if (!auth) {
+      // Robust Fallback for Mock Login (when API keys are missing on Vercel)
+      const mockToken = localStorage.getItem('cs110_auth_token');
+      if (mockToken && mockToken !== 'firebase_active') {
+        const savedName = localStorage.getItem('cs110_username') || 'Student';
+        const savedRole = localStorage.getItem('cs110_role') || 'student';
+        setIsAuthenticated(true);
+        setUserName(savedName);
+        setUserRole(savedRole);
+      }
+      setIsAuthLoading(false);
+      return;
+    }
 
     // Handle redirect results
     getRedirectResult(auth).then((result) => {
