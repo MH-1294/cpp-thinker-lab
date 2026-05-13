@@ -169,7 +169,7 @@ export default function ContestView({ contest, onBack, onSolve, userId }) {
                   </div>
                 </div>
                 <button 
-                  disabled={!isOngoing && !hasEnded}
+                  disabled={!isOngoing && !hasEnded && contest.status !== 'active'}
                   onClick={() => {
                     if (contest.type === 'group' && !teamName.trim()) {
                       alert("Please enter a Team Name to join this group contest!");
