@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { auth, googleProvider } from '../firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile } from 'firebase/auth';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signInWithPopup, 
+  signInWithRedirect, 
+  updateProfile 
+} from 'firebase/auth';
 
 export default function Auth({ onLogin }) {
   const [fullName, setFullName] = useState('');
@@ -44,6 +50,15 @@ export default function Auth({ onLogin }) {
 
     } catch (err) {
       console.error("Auth Error:", err);
+      
+      if (err.code === 'auth/popup-blocked') {
+        setError("Popup blocked! Redirecting to Google Login...");
+        setTimeout(() => {
+          signInWithRedirect(auth, googleProvider);
+        }, 1500);
+        return;
+      }
+
       // Fallback for mock login if Firebase is not configured or errors
       if (!import.meta.env.VITE_FIREBASE_API_KEY || err.code === 'auth/invalid-api-key' || err.message.includes('API key')) {
         console.warn("Falling back to mock login due to missing Firebase config");
@@ -139,12 +154,26 @@ export default function Auth({ onLogin }) {
         </form>
 
         <p style={{ marginTop: '1.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>
-          {isSignUp ? "Already have an account?" : "Don't have an account?"}
+          {isSignUp ? "Already have an account?" : "New to the platform?"}
           <button 
-            onClick={() => setIsSignUp(!isSignUp)} 
-            style={{ background: 'none', border: 'none', color: 'var(--accent-color)', fontWeight: 'bold', marginLeft: '0.5rem', cursor: 'pointer', padding: 0 }}
+            onClick={() => {
+              setIsSignUp(!isSignUp);
+              setError('');
+            }} 
+            style={{ 
+              background: 'rgba(56,189,248,0.1)', 
+              border: '1px solid var(--accent-color)', 
+              color: 'var(--accent-color)', 
+              fontWeight: 'bold', 
+              marginLeft: '0.75rem', 
+              cursor: 'pointer', 
+              padding: '0.4rem 0.8rem',
+              borderRadius: '20px',
+              fontSize: '0.85rem',
+              transition: 'all 0.3s ease'
+            }}
           >
-            {isSignUp ? "Log In" : "Sign Up"}
+            {isSignUp ? "Switch to Log In" : "Create Account (Sign Up)"}
           </button>
         </p>
 
