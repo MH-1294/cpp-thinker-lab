@@ -90,8 +90,9 @@ function NavDropdown({ id, label, isActive, align = 'center', openDropdown, setO
 
 function App() {
   const [currentView, setCurrentView] = useState('home');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userName, setUserName] = useState('');
+   const [isAuthenticated, setIsAuthenticated] = useState(false);
+   const [isAuthLoading, setIsAuthLoading] = useState(true);
+   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('student');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showBanner, setShowBanner] = useState(() => !localStorage.getItem('cs110_banner_dismissed'));
@@ -146,12 +147,22 @@ function App() {
   useEffect(() => {
     if (!auth) return;
 
-    // Handle redirect results (for popup-blocked fallback)
-    getRedirectResult(auth).catch(err => {
+    // Handle redirect results
+    getRedirectResult(auth).then((result) => {
+      if (result?.user) {
+        // Handled by onAuthStateChanged
+      }
+      setIsAuthLoading(false);
+    }).catch(err => {
       console.error("Redirect Auth Error:", err);
+      setIsAuthLoading(false);
+      if (err.code === 'auth/unauthorized-domain') {
+        alert("This domain is not authorized in Firebase Console. Please add it to Authorized Domains.");
+      }
     });
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsAuthLoading(false);
       if (user) {
         const displayName = user.displayName || user.email?.split('@')[0] || 'Student';
         
@@ -217,6 +228,17 @@ function App() {
   };
 
   // Guard protected routes
+  if (isAuthLoading) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-color)', color: 'white' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="animate-spin" style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent-color)', borderRadius: '50%', margin: '0 auto 1rem' }}></div>
+          <p style={{ color: '#94a3b8' }}>Verifying session...</p>
+        </div>
+      </div>
+    );
+  }
+
   const renderView = () => {
     if (['admin', 'feedback', 'profile'].includes(currentView) && !isAuthenticated) {
       return <Auth onLogin={handleLogin} />;
