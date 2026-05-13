@@ -24,10 +24,11 @@ export default function Auth({ onLogin }) {
       let displayName = '';
       
       if (providerName === 'Google') {
-        // Use redirect by default to avoid popup blocking issues entirely
+        if (!auth) throw new Error("Firebase Auth not initialized");
         await signInWithRedirect(auth, googleProvider);
         return; 
       } else {
+        if (!auth) throw new Error("Firebase Auth not initialized");
         if (isSignUp) {
           userCredential = await createUserWithEmailAndPassword(auth, email, password);
           await updateProfile(userCredential.user, { displayName: fullName });
