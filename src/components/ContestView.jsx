@@ -169,25 +169,38 @@ export default function ContestView({ contest, onBack, onSolve, userId }) {
                     <span style={{ fontSize: '0.8rem', color: '#64748b' }}>100 Points</span>
                   </div>
                 </div>
-                <button 
-                  disabled={!isOngoing && !hasEnded && contest.status !== 'active'}
-                  onClick={() => {
-                    if (contest.type === 'group' && !teamName.trim()) {
-                      alert("Please enter a Team Name to join this group contest!");
-                      return;
-                    }
-                    if (contest.type === 'group' && contest.maxTeamSize && teamMembersCount >= contest.maxTeamSize && !solvedIds.length) {
-                      // Only block if they haven't already solved anything (meaning they are trying to join a full team)
-                      alert(`This team is full! Max ${contest.maxTeamSize} members allowed.`);
-                      return;
-                    }
-                    onSolve(problem, contest.firestoreId, teamName);
-                  }}
-                  className={`btn ${isSolved ? 'btn-secondary' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem' }}
-                >
-                  <Terminal size={16} /> {isSolved ? 'Review Solution' : 'Solve Problem'}
-                </button>
+                {(() => {
+                  const isUpcoming = !isOngoing && !hasEnded;
+                  const isGroupMissingTeam = contest.type === 'group' && !teamName.trim();
+                  const isGroupFull = contest.type === 'group' && contest.maxTeamSize && teamMembersCount >= contest.maxTeamSize && !solvedIds.length;
+                  const isDisabled = (isUpcoming && contest.status !== 'active') || isGroupMissingTeam || isGroupFull;
+                  
+                  return (
+                    <button 
+                      disabled={isDisabled}
+                      onClick={() => onSolve(problem, contest.firestoreId, teamName)}
+                      className={`btn ${isSolved ? 'btn-secondary' : ''}`}
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.5rem', 
+                        padding: '0.6rem 1.2rem',
+                        opacity: isDisabled ? 0.5 : 1,
+                        cursor: isDisabled ? 'not-allowed' : 'pointer'
+                      }}
+                      title={isGroupMissingTeam ? "Please enter a Team Name above" : isGroupFull ? "This team is already full." : ""}
+                    >
+                      <Terminal size={16} /> 
+                      {isSolved 
+                        ? 'Review Solution' 
+                        : isGroupMissingTeam 
+                          ? 'Enter Team Name' 
+                          : isGroupFull 
+                            ? 'Team Full' 
+                            : 'Solve Problem'}
+                    </button>
+                  );
+                })()}
               </div>
             );
           })}
