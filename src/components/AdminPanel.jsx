@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, Settings, Upload, Bot, Copy, FileCode2, HelpCircle, Video, Users, PlayCircle, Edit, Eye, EyeOff, Loader, Trophy, Calendar, Clock } from 'lucide-react';
+import { PlusCircle, Trash2, Settings, Upload, Bot, Copy, FileCode2, HelpCircle, Video, Users, PlayCircle, Edit, Eye, EyeOff, Loader, Trophy, Calendar, Clock, MessageCircle, Send } from 'lucide-react';
 import { db } from '../firebase';
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, orderBy, query } from 'firebase/firestore';
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, orderBy, query, onSnapshot, arrayUnion } from 'firebase/firestore';
 import { problems as staticProblems } from '../data/problems';
 
 export default function AdminPanel({ onPreview }) {
@@ -68,6 +68,11 @@ export default function AdminPanel({ onPreview }) {
   const [isContestSaved, setIsContestSaved] = useState(false);
   const [contestLoading, setContestLoading] = useState(false);
 
+  // --- INBOX STATE ---
+  const [inboxChats, setInboxChats] = useState([]);
+  const [selectedChatId, setSelectedChatId] = useState(null);
+  const [replyText, setReplyText] = useState('');
+
   // --- LIFECYCLE ---
   useEffect(() => {
     const role = localStorage.getItem('cs110_role') || 'student';
@@ -97,7 +102,18 @@ export default function AdminPanel({ onPreview }) {
     if (savedS) setStaffList(JSON.parse(savedS));
 
     fetchFirestoreContests();
-  }, []);
+
+    // Inbox listener
+    let unsubInbox = () => {};
+    if (db && role === 'superadmin') {
+      const q = query(collection(db, 'chats'), orderBy('lastMessageAt', 'desc'));
+      unsubInbox = onSnapshot(q, (snap) => {
+        setInboxChats(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      });
+    }
+
+    return () => unsubInbox();
+  }, [userRole]);
 
   // --- QUIZ HANDLERS ---
   const saveSettings = (updates) => {
@@ -375,6 +391,28 @@ export default function AdminPanel({ onPreview }) {
     );
   };
 
+  // --- INBOX HANDLERS ---
+  const handleReplyToStudent = async (e) => {
+    e.preventDefault();
+    if (!replyText.trim() || !selectedChatId || !db) return;
+    try {
+      const msg = {
+        text: replyText.trim(),
+        sender: 'instructor',
+        timestamp: Date.now()
+      };
+      await updateDoc(doc(db, 'chats', selectedChatId), {
+        messages: arrayUnion(msg),
+        lastMessageAt: Date.now(),
+        hasUnreadInstructorMessage: true,
+        hasUnreadStudentMessage: false
+      });
+      setReplyText('');
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -399,6 +437,9 @@ export default function AdminPanel({ onPreview }) {
               </button>
               <button className={`btn ${activeTab === 'staff' ? '' : 'btn-secondary'}`} onClick={() => setActiveTab('staff')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: activeTab === 'staff' ? 'var(--accent-color)' : 'rgba(255,255,255,0.05)' }}>
                 <Users size={18} /> Manage Staff
+              </button>
+              <button className={`btn ${activeTab === 'inbox' ? '' : 'btn-secondary'}`} onClick={() => setActiveTab('inbox')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: activeTab === 'inbox' ? 'var(--accent-color)' : 'rgba(255,255,255,0.05)' }}>
+                <MessageCircle size={18} /> Student Inbox
               </button>
             </>
           )}
@@ -797,12 +838,8 @@ export default function AdminPanel({ onPreview }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {firestoreContests.map(c => (
                     <div key={c.firestoreId} style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ flex: 1 }}>
-                        <strong style={{ color: 'var(--accent-color)', fontSize: '1rem' }}>{c.title}</strong>
-                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={12} /> {new Date(c.startTime).toLocaleDateString()}</span>
-                          <span>{c.problemIds?.length || 0} Problems</span>
-                        </div>
+                        <strong style={{ color: 'white' }}>{c.title}</strong>
+                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.25rem' }}>{new Date(c.startTime).toLocaleString()} - {c.type}</div>
                       </div>
                       <button onClick={() => handleContestDelete(c.firestoreId)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.5rem' }}><Trash2 size={18} /></button>
                     </div>
@@ -810,6 +847,111 @@ export default function AdminPanel({ onPreview }) {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'inbox' && userRole === 'superadmin' && (
+        <div className="animate-fade-in glass-panel" style={{ display: 'flex', height: '600px', padding: 0, overflow: 'hidden' }}>
+          {/* Left Sidebar - Chat List */}
+          <div style={{ width: '300px', borderRight: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <h3 style={{ color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MessageCircle size={20} /> Student Q&A</h3>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {inboxChats.length === 0 ? (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#94a3b8', fontStyle: 'italic' }}>No student questions yet.</div>
+              ) : (
+                inboxChats.map(chat => (
+                  <div 
+                    key={chat.id}
+                    onClick={() => {
+                      setSelectedChatId(chat.id);
+                      if (chat.hasUnreadStudentMessage) {
+                        updateDoc(doc(db, 'chats', chat.id), { hasUnreadStudentMessage: false }).catch(console.error);
+                      }
+                    }}
+                    style={{ 
+                      padding: '1rem', 
+                      cursor: 'pointer', 
+                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      background: selectedChatId === chat.id ? 'rgba(56, 189, 248, 0.1)' : 'transparent',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <div>
+                      <strong style={{ color: selectedChatId === chat.id ? 'var(--accent-color)' : 'white' }}>{chat.studentName || 'Anonymous Student'}</strong>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+                        {new Date(chat.lastMessageAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </div>
+                    </div>
+                    {chat.hasUnreadStudentMessage && (
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }}></div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Right Panel - Chat Window */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.1)' }}>
+            {!selectedChatId ? (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                Select a student conversation to reply
+              </div>
+            ) : (
+              <>
+                {/* Chat Header */}
+                <div style={{ padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)' }}>
+                  <strong style={{ color: 'white' }}>Replying to: {inboxChats.find(c => c.id === selectedChatId)?.studentName}</strong>
+                </div>
+
+                {/* Messages Array */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {inboxChats.find(c => c.id === selectedChatId)?.messages?.map((msg, idx) => {
+                    const isInstructor = msg.sender === 'instructor';
+                    return (
+                      <div key={idx} style={{ alignSelf: isInstructor ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.2rem', textAlign: isInstructor ? 'right' : 'left' }}>
+                          {isInstructor ? 'You' : 'Student'}
+                        </div>
+                        <div style={{ 
+                          background: isInstructor ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.1)', 
+                          color: 'white', 
+                          padding: '0.75rem 1rem', 
+                          borderRadius: '12px', 
+                          borderTopRightRadius: isInstructor ? '2px' : '12px',
+                          borderTopLeftRadius: isInstructor ? '12px' : '2px'
+                        }}>
+                          {msg.text}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Reply Input */}
+                <form onSubmit={handleReplyToStudent} style={{ padding: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Type your reply to the student..."
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={!replyText.trim()}
+                    style={{ background: 'var(--accent-color)', border: 'none', width: '50px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f172a', cursor: 'pointer', opacity: !replyText.trim() ? 0.5 : 1 }}
+                  >
+                    <Send size={18} />
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}

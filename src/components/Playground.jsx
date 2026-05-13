@@ -4,8 +4,8 @@ import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
 export default function Playground({ contestContext }) {
-  const [code, setCode] = useState('#include <iostream>\nusing namespace std;\n\nint main() {\n    int A, B;\n    // Type your code here\n    cin >> A >> B;\n    cout << "X = " << A + B << endl;\n    return 0;\n}');
-  const [inputData, setInputData] = useState('10\n9');
+  const [code, setCode] = useState('#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello champions!" << endl;\n    // Type your code here\n    \n    return 0;\n}');
+  const [inputData, setInputData] = useState('// Enter your custom input here\n');
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

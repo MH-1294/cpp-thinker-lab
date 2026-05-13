@@ -26,6 +26,7 @@ import Contests from './components/Contests'
 import ContestView from './components/ContestView'
 import NotFound from './components/NotFound'
 import ErrorBoundary from './components/ErrorBoundary'
+import ChatWidget from './components/ChatWidget'
 
 // ─── Accessible Dropdown Component ────────────────────────────────────────────
 function NavDropdown({ id, label, isActive, align = 'center', openDropdown, setOpenDropdown, dropdownRef, children }) {
@@ -591,6 +592,7 @@ function App() {
         </div>
       </footer>
       <Analytics />
+      <ChatWidget userId={userId} userName={userName} setUserName={setUserName} />
     </div>
   )
 }
