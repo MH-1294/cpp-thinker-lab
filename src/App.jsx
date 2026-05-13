@@ -153,31 +153,41 @@ function App() {
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
+        const displayName = user.displayName || user.email?.split('@')[0] || 'Student';
+        
+        // Determine role
+        let role = 'student';
+        const userEmail = (user.email || '').toLowerCase();
+        const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase();
+        
+        if (adminEmail && userEmail === adminEmail) role = 'superadmin';
+        else if (userEmail.includes('admin')) role = 'superadmin';
+        else if (userEmail.includes('ta') || userEmail.includes('manager')) role = 'quiz_manager';
+
+        setUserName(displayName);
+        setUserRole(role);
         setIsAuthenticated(true);
-        setUserName(user.displayName || user.email?.split('@')[0] || 'Student');
-        const savedRole = localStorage.getItem('cs110_role') || 'student';
-        setUserRole(savedRole);
         setUserId(user.uid);
+        
+        localStorage.setItem('cs110_username', displayName);
+        localStorage.setItem('cs110_role', role);
+        localStorage.setItem('cs110_auth_token', 'firebase_active');
       } else {
-        // Fallback check for mock login
-        const token = localStorage.getItem('cs110_auth_token');
-        const savedName = localStorage.getItem('cs110_username');
-        const savedRole = localStorage.getItem('cs110_role') || 'student';
-        if (token) {
-          setIsAuthenticated(true);
-          if (savedName) setUserName(savedName);
-          setUserRole(savedRole);
-        } else {
+        const mockToken = localStorage.getItem('cs110_auth_token');
+        if (mockToken === 'firebase_active' || !mockToken) {
           setIsAuthenticated(false);
           setUserName('');
           setUserRole('student');
+        } else if (mockToken) {
+          // Keep mock login active
+          setIsAuthenticated(true);
+          setUserName(localStorage.getItem('cs110_username') || 'Student');
+          setUserRole(localStorage.getItem('cs110_role') || 'student');
         }
       }
     });
 
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
+    return () => unsubscribe && unsubscribe();
   }, []);
 
   const handleLogin = (name, role) => {

@@ -24,8 +24,9 @@ export default function Auth({ onLogin }) {
       let displayName = '';
       
       if (providerName === 'Google') {
-        userCredential = await signInWithPopup(auth, googleProvider);
-        displayName = userCredential.user.displayName || "Google User";
+        // Use redirect by default to avoid popup blocking issues entirely
+        await signInWithRedirect(auth, googleProvider);
+        return; 
       } else {
         if (isSignUp) {
           userCredential = await createUserWithEmailAndPassword(auth, email, password);
