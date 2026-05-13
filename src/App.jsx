@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { User, Menu, X } from 'lucide-react'
 import { auth } from './firebase'
-import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth'
 import Hero from './components/Hero'
 import NewcomerGuide from './components/NewcomerGuide'
 import Quiz from './components/Quiz'
@@ -142,19 +142,14 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentView]);
 
+  // --- AUTH SYNC ---
   useEffect(() => {
-    if (!auth) {
-      // Fallback check for mock login
-      const token = localStorage.getItem('cs110_auth_token');
-      const savedName = localStorage.getItem('cs110_username');
-      const savedRole = localStorage.getItem('cs110_role') || 'student';
-      if (token) {
-        setIsAuthenticated(true);
-        if (savedName) setUserName(savedName);
-        setUserRole(savedRole);
-      }
-      return;
-    }
+    if (!auth) return;
+
+    // Handle redirect results (for popup-blocked fallback)
+    getRedirectResult(auth).catch(err => {
+      console.error("Redirect Auth Error:", err);
+    });
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
