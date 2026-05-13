@@ -4,7 +4,6 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signInWithPopup, 
-  signInWithRedirect, 
   updateProfile 
 } from 'firebase/auth';
 
@@ -25,8 +24,10 @@ export default function Auth({ onLogin }) {
       
       if (providerName === 'Google') {
         if (!auth) throw new Error("Firebase Auth not initialized");
-        await signInWithRedirect(auth, googleProvider);
-        return; 
+        userCredential = await signInWithPopup(auth, googleProvider);
+        displayName = userCredential.user.displayName || userCredential.user.email?.split('@')[0] || 'Student';
+      } else if (providerName) {
+        throw new Error(`${providerName} login not implemented with Firebase yet. Triggering fallback.`);
       } else {
         if (!auth) throw new Error("Firebase Auth not initialized");
         if (isSignUp) {

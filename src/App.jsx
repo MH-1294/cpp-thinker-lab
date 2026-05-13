@@ -576,7 +576,7 @@ function App() {
             <span aria-hidden="true">·</span>
             <button onClick={() => setCurrentView('legal-credits')} style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}>Credits</button>
             <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '1rem' }}>
-              Build ID: 2026.05.12.2330 | Final Prep
+              Build ID: 2026.05.13 | Auth Fix
             </div>
           </div>
         </div>
