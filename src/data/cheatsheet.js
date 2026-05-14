@@ -53,5 +53,30 @@ export const cheatsheet = [
         explanation: "Pointers hold the memory address of another variable."
       }
     ]
+  },
+  {
+    category: "Core Fundamentals & Gotchas",
+    items: [
+      {
+        title: "Pre vs Post Increment (with cout)",
+        code: "int x = 5;\n// Post-increment: Prints current value FIRST, then adds 1\ncout << x++; // Output: 5 (but x is now 6 behind the scenes)\n\n// Pre-increment: Adds 1 FIRST, then prints the new value\ncout << ++x; // Output: 7 (adds 1 to 6, then prints 7)\n\n// Rule of thumb: If ++ is AFTER, the action happens AFTER.",
+        explanation: "A very common pitfall! Using x++ inside a cout statement will print the old value before updating it."
+      },
+      {
+        title: "Type Casting (When to use it)",
+        code: "int total = 45;\nint items = 7;\n\n// Integer division drops the decimal: 45/7 = 6\ndouble badAvg = total / items; // badAvg = 6.0 (Wrong!)\n\n// We NEED casting to get the exact decimal (6.428...)\ndouble goodAvg = (double)total / items;\n//               ^^^^^^^^\n//               └──> Temporarily treats 'total' as 45.0\n\n// Modern C++ safer approach:\ndouble bestAvg = static_cast<double>(total) / items;\n//               ^^^^^^^^^^^^^^^^^^^\n//               └──> Explicitly and safely converts to double",
+        explanation: "You need Type Casting when you are doing math with integers but want a precise decimal (double) result."
+      },
+      {
+        title: "Integer vs Float Division",
+        code: "cout << 5 / 2;   // Outputs 2 (Int / Int = Int)\ncout << 5.0 / 2; // Outputs 2.5 (Float / Int = Float)",
+        explanation: "If both numbers are integers, C++ chops off the decimal. At least one must have a .0 to keep precision."
+      },
+      {
+        title: "The Modulo Operator (%)",
+        code: "int num = 10;\n// Modulo gives the REMAINDER of division\nint remainder = num % 3; // 10 / 3 = 3 with a remainder of 1\n\n// The most common use: Checking Even/Odd\nif (num % 2 == 0) {\n  cout << \"Even!\";\n}",
+        explanation: "The % operator is essential for finding even/odd numbers or cycling through arrays."
+      }
+    ]
   }
 ];
