@@ -441,6 +441,25 @@ h1, h2, h3 {
 }
 
 /* Responsive */
+/* Word Cloud Animations */
+.word-cloud-item {
+  transition: all 0.3s ease;
+  animation: floatWord 4s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.word-cloud-item:hover {
+  transform: scale(1.1) !important; /* overrides float */
+  z-index: 10;
+  text-shadow: 0 0 20px currentColor !important;
+  cursor: default;
+}
+
+@keyframes floatWord {
+  0% { transform: translateY(0px) rotate(-1deg); }
+  100% { transform: translateY(-8px) rotate(1deg); }
+}
+
 @media (max-width: 768px) {
   .nav-links { display: none; }
   .hamburger { display: flex; }

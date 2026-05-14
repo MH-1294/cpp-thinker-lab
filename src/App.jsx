@@ -27,6 +27,7 @@ import ContestView from './components/ContestView'
 import NotFound from './components/NotFound'
 import ErrorBoundary from './components/ErrorBoundary'
 import ChatWidget from './components/ChatWidget'
+import WordCloudView from './components/WordCloudView'
 
 // ─── Accessible Dropdown Component ────────────────────────────────────────────
 function NavDropdown({ id, label, isActive, align = 'center', openDropdown, setOpenDropdown, dropdownRef, children }) {
@@ -298,6 +299,7 @@ function App() {
       case 'legal':         return <Legal defaultTab="copyright" />;
       case 'legal-privacy': return <Legal defaultTab="privacy" />;
       case 'legal-credits': return <Legal defaultTab="credits" />;
+      case 'features': return <WordCloudView />;
       case 'contests': return (
         <Contests 
           onViewContest={(contest) => {
@@ -354,6 +356,7 @@ function App() {
         <button onClick={() => { setCurrentView('leaderboard'); setMobileNavOpen(false); }}>Class Leaderboard</button>
         <button onClick={() => { setCurrentView('tutoring'); setMobileNavOpen(false); }}>1-on-1 Tutoring</button>
         <button onClick={() => { setCurrentView('feedback'); setMobileNavOpen(false); }}>Feedback</button>
+        <button onClick={() => { setCurrentView('features'); setMobileNavOpen(false); }}>Feature Wishlist</button>
         <button onClick={() => { setCurrentView('about'); setMobileNavOpen(false); }}>About Me</button>
 
         {isAuthenticated && (
@@ -425,13 +428,14 @@ function App() {
           <NavDropdown
             id="community"
             label="Community ▾"
-            isActive={['leaderboard','about','feedback','tutoring'].includes(currentView)}
+            isActive={['leaderboard','about','feedback','tutoring','features'].includes(currentView)}
             openDropdown={openDropdown}
             setOpenDropdown={setOpenDropdown}
             dropdownRef={dropdownRefs.community}
           >
             <button role="menuitem" onClick={() => { setCurrentView('leaderboard'); setOpenDropdown(null); }}>Class Leaderboard</button>
             <button role="menuitem" onClick={() => { setCurrentView('tutoring');    setOpenDropdown(null); }}>1-on-1 Tutoring</button>
+            <button role="menuitem" onClick={() => { setCurrentView('features');    setOpenDropdown(null); }}>Feature Wishlist</button>
             <button role="menuitem" onClick={() => { setCurrentView('feedback');    setOpenDropdown(null); }}>Feedback</button>
             <button role="menuitem" onClick={() => { setCurrentView('about');       setOpenDropdown(null); }}>About Me</button>
           </NavDropdown>
@@ -561,6 +565,7 @@ function App() {
             <h3>Community</h3>
             <button onClick={() => setCurrentView('leaderboard')}>Class Leaderboard</button>
             <button onClick={() => setCurrentView('tutoring')}>1-on-1 Tutoring</button>
+            <button onClick={() => setCurrentView('features')}>Feature Wishlist</button>
             <button onClick={() => setCurrentView('feedback')}>Give Feedback</button>
             <button onClick={() => setCurrentView('about')}>About the Instructor</button>
           </nav>
