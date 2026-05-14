@@ -350,7 +350,7 @@ function App() {
         <button onClick={() => { setCurrentView('problems'); setMobileNavOpen(false); }}>Problem Set</button>
         <button onClick={() => { setCurrentView('playground'); setMobileNavOpen(false); }}>Playground</button>
         <button onClick={() => { setCurrentView('flashcards'); setMobileNavOpen(false); }}>Flashcards</button>
-        <button onClick={() => { setCurrentView('notes'); setMobileNavOpen(false); }}>My Notes</button>
+        <button onClick={() => { setCurrentView('notes'); setMobileNavOpen(false); }}>Instructor Notes</button>
 
         <div className="mobile-nav-section">Community</div>
         <button onClick={() => { setCurrentView('leaderboard'); setMobileNavOpen(false); }}>Class Leaderboard</button>
@@ -421,7 +421,7 @@ function App() {
             <button role="menuitem" onClick={() => { setCurrentView('problems');    setOpenDropdown(null); }}>Problem Set</button>
             <button role="menuitem" onClick={() => { setCurrentView('playground');  setOpenDropdown(null); }}>Playground</button>
             <button role="menuitem" onClick={() => { setCurrentView('flashcards');  setOpenDropdown(null); }}>Flashcards</button>
-            <button role="menuitem" onClick={() => { setCurrentView('notes');       setOpenDropdown(null); }}>My Notes</button>
+            <button role="menuitem" onClick={() => { setCurrentView('notes');       setOpenDropdown(null); }}>Instructor Notes</button>
           </NavDropdown>
 
           {/* Community dropdown */}
