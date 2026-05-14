@@ -3,7 +3,7 @@ import { Trophy, Clock, Calendar, ChevronRight, Loader } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
-export default function Contests({ onViewContest }) {
+export default function Contests({ onViewContest, isAuthenticated, onLoginRedirect }) {
   const [contests, setContests] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -86,11 +86,11 @@ export default function Contests({ onViewContest }) {
                 </div>
 
                 <button 
-                  onClick={() => onViewContest(contest)}
-                  className={`btn ${isOngoing ? '' : 'btn-secondary'}`}
+                  onClick={isAuthenticated ? () => onViewContest(contest) : onLoginRedirect}
+                  className={`btn ${isAuthenticated && isOngoing ? '' : 'btn-secondary'}`}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
-                  {isOngoing ? 'Join Contest' : 'View Details'} <ChevronRight size={16} />
+                  {!isAuthenticated ? 'Login to Participate' : (isOngoing ? 'Join Contest' : 'View Details')} <ChevronRight size={16} />
                 </button>
               </div>
             );

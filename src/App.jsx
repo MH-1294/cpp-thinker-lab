@@ -302,6 +302,8 @@ function App() {
       case 'features': return <WordCloudView />;
       case 'contests': return (
         <Contests 
+          isAuthenticated={isAuthenticated}
+          onLoginRedirect={() => setCurrentView('auth')}
           onViewContest={(contest) => {
             setSelectedContest(contest);
             setCurrentView('contest-view');
@@ -317,6 +319,7 @@ function App() {
           <ContestView 
             contest={selectedContest} 
             userId={userId}
+            onLoginRedirect={() => setCurrentView('auth')}
             onBack={() => setCurrentView('contests')}
             onSolve={(problem, contestId, teamName) => {
               setContestProblem({ problemId: problem.firestoreId, problemDetails: problem, contestId, userId, userName, teamName });

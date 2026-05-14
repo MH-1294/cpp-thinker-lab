@@ -4,7 +4,7 @@ import { db } from '../firebase';
 import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
 import ContestLeaderboard from './ContestLeaderboard';
 
-export default function ContestView({ contest, onBack, onSolve, userId }) {
+export default function ContestView({ contest, onBack, onSolve, userId, onLoginRedirect }) {
   const [problems, setProblems] = useState([]);
   const [solvedIds, setSolvedIds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -173,12 +173,12 @@ export default function ContestView({ contest, onBack, onSolve, userId }) {
                   const isUpcoming = !isOngoing && !hasEnded;
                   const isGroupMissingTeam = contest.type === 'group' && !teamName.trim();
                   const isGroupFull = contest.type === 'group' && contest.maxTeamSize && teamMembersCount >= contest.maxTeamSize && !solvedIds.length;
-                  const isDisabled = (isUpcoming && contest.status !== 'active') || isGroupMissingTeam || isGroupFull;
+                  const isDisabled = userId && ((isUpcoming && contest.status !== 'active') || isGroupMissingTeam || isGroupFull);
                   
                   return (
                     <button 
                       disabled={isDisabled}
-                      onClick={() => onSolve(problem, contest.firestoreId, teamName)}
+                      onClick={!userId ? onLoginRedirect : () => onSolve(problem, contest.firestoreId, teamName)}
                       className={`btn ${isSolved ? 'btn-secondary' : ''}`}
                       style={{ 
                         display: 'flex', 
@@ -188,16 +188,17 @@ export default function ContestView({ contest, onBack, onSolve, userId }) {
                         opacity: isDisabled ? 0.5 : 1,
                         cursor: isDisabled ? 'not-allowed' : 'pointer'
                       }}
-                      title={isGroupMissingTeam ? "Please enter a Team Name above" : isGroupFull ? "This team is already full." : ""}
+                      title={!userId ? "You must login first" : isGroupMissingTeam ? "Please enter a Team Name above" : isGroupFull ? "This team is already full." : ""}
                     >
                       <Terminal size={16} /> 
-                      {isSolved 
-                        ? 'Review Solution' 
-                        : isGroupMissingTeam 
-                          ? 'Enter Team Name' 
-                          : isGroupFull 
-                            ? 'Team Full' 
-                            : 'Solve Problem'}
+                      {!userId ? 'Login to Solve'
+                        : isSolved 
+                          ? 'Review Solution' 
+                          : isGroupMissingTeam 
+                            ? 'Enter Team Name' 
+                            : isGroupFull 
+                              ? 'Team Full' 
+                              : 'Solve Problem'}
                     </button>
                   );
                 })()}
