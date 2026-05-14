@@ -92,6 +92,52 @@ export default function Notes() {
           </p>
         </div>
       </div>
+
+      {/* Note 4: The Getline Trap */}
+      <div className="ipad-notes-container">
+        <h3 className="handwritten-title">4. The `getline()` Trap</h3>
+        <p className="handwritten" style={{ color: 'white', marginBottom: '1rem' }}>
+          Ever tried to use <span style={{ color: '#38bdf8' }}>getline()</span> after a normal <span style={{ color: '#38bdf8' }}>cin</span>, and it completely skips the input? Here is why:
+        </p>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+          {/* The Problem */}
+          <div style={{ background: 'rgba(239,68,68,0.1)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.3)', fontFamily: 'Fira Code, monospace', fontSize: '1.1rem' }}>
+            <span style={{ color: '#ef4444', fontWeight: 'bold', display: 'block', marginBottom: '1rem' }}>❌ The Problem</span>
+            cout &lt;&lt; <span style={{ color: '#34d399' }}>"Enter age: "</span>;<br/>
+            cin &gt;&gt; age; <span className="handwritten handwritten-pink" style={{ marginLeft: '1rem' }}>Leaves 'Enter' key in buffer!</span><br/><br/>
+            
+            cout &lt;&lt; <span style={{ color: '#34d399' }}>"Enter full name: "</span>;<br/>
+            <span style={{ borderBottom: '2px dashed #ef4444' }}>getline(cin, name);</span> <span className="handwritten handwritten-pink" style={{ marginLeft: '0.5rem' }}>Skips immediately!</span>
+          </div>
+
+          {/* The Solution */}
+          <div style={{ background: 'rgba(34,197,94,0.1)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(34,197,94,0.3)', fontFamily: 'Fira Code, monospace', fontSize: '1.1rem', position: 'relative' }}>
+            <span style={{ color: '#22c55e', fontWeight: 'bold', display: 'block', marginBottom: '1rem' }}>✅ The Solution</span>
+            cout &lt;&lt; <span style={{ color: '#34d399' }}>"Enter age: "</span>;<br/>
+            cin &gt;&gt; age;<br/><br/>
+            
+            <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>cin.ignore();</span><br/><br/>
+
+            cout &lt;&lt; <span style={{ color: '#34d399' }}>"Enter full name: "</span>;<br/>
+            getline(cin, name);
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'absolute', top: '5.5rem', left: '10rem' }}>
+              <span className="handwritten handwritten-blue" style={{ marginBottom: '0.2rem', whiteSpace: 'nowrap' }}>Removes leftover 'Enter' key!</span>
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 5 L20 30 M10 20 L20 30 L30 20" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        
+        <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+          <ArrowRight className="handwritten-pink" style={{ marginTop: '0.5rem', flexShrink: 0 }} />
+          <p className="handwritten">
+            Normal <span style={{ color: '#38bdf8' }}>cin</span> leaves the "Enter" key (newline character) floating in memory. When <span style={{ color: '#38bdf8' }}>getline()</span> comes along, it sees that leftover Enter key and thinks you instantly submitted a blank line! Always use <span style={{ color: '#fbbf24' }}>cin.ignore()</span> to clear the garbage first.
+          </p>
+        </div>
+      </div>
       
     </div>
   );
