@@ -592,14 +592,16 @@ pre {
   padding: 1rem;
   border-radius: 8px;
   overflow-x: auto;
-  font-family: 'Fira Code', monospace;
+  font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-ligatures: none; /* Crucial for beginners: prevents >= from turning into a single symbol */
   font-size: 0.9rem;
   border: 1px solid #334155;
   margin: 1rem 0;
 }
 
 code {
-  font-family: 'Fira Code', monospace;
+  font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-ligatures: none;
   background: #1e293b;
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
@@ -735,7 +737,8 @@ code {
   height: 250px;
   background: #0f172a;
   color: #38bdf8;
-  font-family: 'Fira Code', monospace;
+  font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-ligatures: none;
   font-size: 1rem;
   padding: 1rem;
   border: 1px solid #334155;
@@ -752,7 +755,8 @@ code {
 .terminal-output {
   background: #000;
   color: #22c55e;
-  font-family: 'Fira Code', monospace;
+  font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-ligatures: none;
   padding: 1rem;
   border-radius: 8px;
   min-height: 100px;
